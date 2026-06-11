@@ -1,3 +1,5 @@
+Aqui está a versão corrigida com o menu "Máquinas & EPIs" reformulado, substituindo os selects com barra de rolagem por múltiplos checkboxes organizados em grid.
+```html
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -26,9 +28,6 @@
         ::-webkit-scrollbar-thumb {
             background: #3b4a6b;
             border-radius: 10px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #5c7ab3;
         }
         .slide-enter {
             animation: slideIn 0.3s ease-out;
@@ -61,9 +60,6 @@
             backdrop-filter: blur(2px);
             border: 1px solid rgba(59, 74, 107, 0.5);
         }
-        .risk-badge {
-            transition: all 0.15s ease;
-        }
         .qr-container img {
             margin: 0 auto;
             width: 90px;
@@ -85,16 +81,20 @@
                 transform: translateX(0);
             }
         }
-        button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible {
-            outline: 2px solid #60a5fa;
-            outline-offset: 2px;
+        .video-preview {
+            transform: scaleX(-1);
         }
-        /* Estilo para preview da selfie */
-        .selfie-preview {
-            transition: all 0.2s ease;
+        .countdown-timer {
+            font-feature-settings: "tnum";
+            font-variant-numeric: tabular-nums;
         }
-        .camera-box {
-            background: linear-gradient(135deg, #0f1422 0%, #0a0f1a 100%);
+        .checkbox-group {
+            max-height: 280px;
+            overflow-y: auto;
+            padding-right: 8px;
+        }
+        .checkbox-group::-webkit-scrollbar {
+            width: 4px;
         }
     </style>
 </head>
@@ -103,7 +103,7 @@
     <div id="mobileOverlay" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 hidden md:hidden"></div>
 
     <div class="flex min-h-screen">
-        <!-- MENU LATERAL -->
+        <!-- MENU LATERAL SAAS -->
         <aside id="sidebar" class="sidebar-transition fixed md:relative w-72 h-full bg-[#0d1222] border-r border-[#1e2a3e] shadow-2xl flex flex-col z-50 sidebar-mobile">
             <div class="p-6 border-b border-[#1e2a3e]">
                 <div class="flex items-center gap-3">
@@ -117,9 +117,9 @@
                 </div>
             </div>
             <nav class="flex-1 py-6 px-4 space-y-2">
-                <button id="navAdmin" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:bg-[#1a2035] hover:text-white transition-all group">
+                <button id="navDashboard" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:bg-[#1a2035] hover:text-white transition-all group">
                     <i class="fas fa-tachometer-alt w-5 text-indigo-400"></i>
-                    <span class="font-medium">Dashboard Admin</span>
+                    <span class="font-medium">Dashboard</span>
                 </button>
                 <button id="navMachines" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:bg-[#1a2035] hover:text-white transition-all group">
                     <i class="fas fa-microchip w-5 text-blue-400"></i>
@@ -130,9 +130,13 @@
                     <span class="font-medium">Colaboradores</span>
                 </button>
                 <div class="h-px bg-[#1e2a3e] my-3"></div>
-                <button id="navQRSImulator" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:bg-[#1a2035] hover:text-white transition-all group">
-                    <i class="fas fa-qrcode w-5 text-purple-400"></i>
-                    <span class="font-medium">Simular QR Code</span>
+                <button id="navChecklist" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:bg-[#1a2035] hover:text-white transition-all group">
+                    <i class="fas fa-clipboard-list w-5 text-cyan-400"></i>
+                    <span class="font-medium">Checklist + Selfie</span>
+                </button>
+                <button id="navHistory" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:bg-[#1a2035] hover:text-white transition-all group">
+                    <i class="fas fa-history w-5 text-purple-400"></i>
+                    <span class="font-medium">Histórico de Inspeções</span>
                 </button>
             </nav>
             <div class="p-4 border-t border-[#1e2a3e] text-xs text-gray-500">
@@ -140,7 +144,7 @@
                     <i class="fas fa-shield-alt text-emerald-500"></i>
                     <span>ISO 45001:2023</span>
                 </div>
-                <p class="text-[11px]">v3.0 • Selfie comprobatória</p>
+                <p class="text-[11px]">v4.0 • Selfie com temporizador</p>
             </div>
         </aside>
 
@@ -173,19 +177,19 @@
 
     <script>
         // ================================
-        // 1. DADOS E CONFIGURAÇÕES
+        // 1. DADOS E CONFIGURAÇÕES GLOBAIS
         // ================================
         const RISKS_CATALOG = [
             "Atropelamento", "Choque elétrico", "Corte/Amputação", "Queda de altura", 
             "Ruído excessivo", "Exposição química", "Incêndio", "Explosão", "Fadiga térmica",
-            "Esforço repetitivo", "Poeira industrial", "Vibração"
+            "Esforço repetitivo", "Poeira industrial", "Vibração", "Ruído avariado"
         ];
         
         const EPIS_CATALOG = [
             "Capacete de segurança", "Óculos de proteção", "Protetor auricular", 
             "Luvas de borracha", "Cinto de segurança", "Máscara respiratória", 
             "Avental impermeável", "Calçado de segurança", "Jaleco", "Protetor facial",
-            "Luvas térmicas", "Trava-quedas"
+            "Luvas térmicas", "Trava-quedas", "Cintas de contaminação"
         ];
 
         let machines = [
@@ -196,10 +200,10 @@
         
         let employees = [
             { id: "FUNC-001", name: "Carlos Mendes", role: "Operador", shift: "Matutino", sector: "Produção" },
-            { id: "FUNC-002", name: "Juliana Rocha", role: "Manutenção", shift: "Noturno", sector: "Manutenção" }
+            { id: "FUNC-002", name: "Juliana Rocha", role: "Manutenção", shift: "Noturno", sector: "Manutenção" },
+            { id: "FUNC-003", name: "Roberto Almeida", role: "Técnico", shift: "Vespertino", sector: "Qualidade" }
         ];
 
-        // Histórico de checklists com selfies (simulação)
         let checklistHistory = [];
 
         function saveData() {
@@ -254,134 +258,253 @@
         }
         
         // ================================
-        // 2. MÓDULO ADMIN COMPLETO
+        // 2. DASHBOARD
         // ================================
-        function renderFullAdmin() {
+        function renderDashboard() {
+            const totalMachines = machines.length;
+            const totalEmployees = employees.length;
+            const totalInspections = checklistHistory.length;
+            const recentInspections = [...checklistHistory].reverse().slice(0, 5);
+            
             const html = `
-                <div class="grid lg:grid-cols-2 gap-7">
-                    <div class="space-y-5">
-                        <div class="flex items-center gap-3 border-b border-[#1e2a3e] pb-3">
-                            <div class="bg-blue-600/20 p-2 rounded-xl"><i class="fas fa-microchip text-blue-400 text-xl"></i></div>
-                            <h2 class="text-xl font-bold text-white">Máquinas & EPIs</h2>
-                        </div>
-                        <div class="card-glass rounded-2xl p-5 shadow-xl">
-                            <h3 class="font-bold text-gray-200 flex items-center gap-2 mb-4"><i class="fas fa-plus-circle text-emerald-400"></i> Nova Máquina</h3>
-                            <div class="space-y-4">
-                                <input type="text" id="machineName" placeholder="Nome da máquina" class="w-full p-3 bg-[#111827] border border-[#1f2a3e] rounded-xl text-white placeholder-gray-500 focus:border-blue-500">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-300 mb-2">Riscos (multiselect)</label>
-                                    <select id="machineRisks" multiple class="w-full p-2 border border-[#1f2a3e] rounded-xl bg-[#111827] text-gray-200 h-28">
-                                        ${RISKS_CATALOG.map(risk => `<option value="${risk}">${risk}</option>`).join('')}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-300 mb-2">EPIs obrigatórios</label>
-                                    <select id="machineEpis" multiple class="w-full p-2 border border-[#1f2a3e] rounded-xl bg-[#111827] text-gray-200 h-28">
-                                        ${EPIS_CATALOG.map(epi => `<option value="${epi}">${epi}</option>`).join('')}
-                                    </select>
-                                </div>
-                                <button id="addMachineBtn" class="bg-blue-600 hover:bg-blue-500 text-white w-full py-2.5 rounded-xl font-bold transition"><i class="fas fa-save mr-2"></i> Registrar Máquina</button>
+                <div class="space-y-6">
+                    <div>
+                        <h1 class="text-2xl font-bold text-white">Dashboard</h1>
+                        <p class="text-gray-400">Visão geral da segurança operacional</p>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                        <div class="card-glass rounded-2xl p-5">
+                            <div class="flex items-center justify-between">
+                                <div><i class="fas fa-microchip text-3xl text-blue-400"></i></div>
+                                <span class="text-3xl font-bold text-white">${totalMachines}</span>
                             </div>
+                            <p class="text-gray-400 mt-2">Máquinas cadastradas</p>
                         </div>
-                        <div class="space-y-3">
-                            <h3 class="font-bold text-gray-300 flex items-center gap-2"><i class="fas fa-cogs text-indigo-400"></i> Máquinas Ativas (${machines.length})</h3>
-                            <div id="machineListContainer" class="space-y-3 max-h-[500px] overflow-y-auto pr-1">
-                                ${renderMachinesListDark()}
+                        <div class="card-glass rounded-2xl p-5">
+                            <div class="flex items-center justify-between">
+                                <div><i class="fas fa-users text-3xl text-emerald-400"></i></div>
+                                <span class="text-3xl font-bold text-white">${totalEmployees}</span>
                             </div>
+                            <p class="text-gray-400 mt-2">Colaboradores ativos</p>
+                        </div>
+                        <div class="card-glass rounded-2xl p-5">
+                            <div class="flex items-center justify-between">
+                                <div><i class="fas fa-clipboard-list text-3xl text-purple-400"></i></div>
+                                <span class="text-3xl font-bold text-white">${totalInspections}</span>
+                            </div>
+                            <p class="text-gray-400 mt-2">Inspeções realizadas</p>
                         </div>
                     </div>
-                    <div class="space-y-5">
-                        <div class="flex items-center gap-3 border-b border-[#1e2a3e] pb-3">
-                            <div class="bg-emerald-600/20 p-2 rounded-xl"><i class="fas fa-users text-emerald-400 text-xl"></i></div>
-                            <h2 class="text-xl font-bold text-white">Colaboradores</h2>
-                        </div>
-                        <div class="card-glass rounded-2xl p-5 shadow-xl">
-                            <h3 class="font-bold text-gray-200 flex items-center gap-2 mb-4"><i class="fas fa-user-plus text-emerald-400"></i> Adicionar Funcionário</h3>
-                            <div class="space-y-4">
-                                <input type="text" id="empName" placeholder="Nome completo" class="w-full p-3 bg-[#111827] border border-[#1f2a3e] rounded-xl text-white">
-                                <input type="text" id="empRole" placeholder="Cargo" class="w-full p-3 bg-[#111827] border border-[#1f2a3e] rounded-xl text-white">
-                                <select id="empShift" class="w-full p-3 bg-[#111827] border border-[#1f2a3e] rounded-xl text-white">
-                                    <option value="Matutino">Matutino (06-14h)</option>
-                                    <option value="Vespertino">Vespertino (14-22h)</option>
-                                    <option value="Noturno">Noturno (22-06h)</option>
-                                </select>
-                                <button id="addEmployeeBtn" class="bg-emerald-600 hover:bg-emerald-500 text-white w-full py-2.5 rounded-xl font-bold transition"><i class="fas fa-user-check mr-2"></i> Cadastrar</button>
+                    <div class="card-glass rounded-2xl p-5">
+                        <h3 class="font-bold text-white mb-3"><i class="fas fa-history mr-2"></i>Últimas Inspeções</h3>
+                        ${recentInspections.length === 0 ? '<p class="text-gray-400 text-center py-4">Nenhuma inspeção registrada ainda</p>' : 
+                            recentInspections.map(ins => `
+                                <div class="border-b border-[#1e2a3e] py-2 flex justify-between items-center">
+                                    <div>
+                                        <p class="text-white text-sm">${ins.machineName}</p>
+                                        <p class="text-gray-500 text-xs">${new Date(ins.timestamp).toLocaleString('pt-BR')}</p>
+                                    </div>
+                                    <i class="fas fa-check-circle text-emerald-500"></i>
+                                </div>
+                            `).join('')
+                        }
+                    </div>
+                </div>
+            `;
+            document.getElementById("dynamicPanel").innerHTML = html;
+        }
+        
+        // ================================
+        // 3. MÓDULO MÁQUINAS COM CHECKBOXES (sem barra de rolagem nos selects)
+        // ================================
+        function renderMachinesModule() {
+            // Gerar checkboxes para riscos
+            const risksCheckboxes = RISKS_CATALOG.map(risk => `
+                <label class="flex items-center gap-2 p-2 rounded-lg hover:bg-[#1a2035] cursor-pointer transition">
+                    <input type="checkbox" value="${risk}" class="risk-checkbox w-4 h-4 rounded border-gray-500 text-blue-500 focus:ring-blue-500">
+                    <span class="text-gray-300 text-sm">${risk}</span>
+                </label>
+            `).join('');
+            
+            // Gerar checkboxes para EPIs
+            const episCheckboxes = EPIS_CATALOG.map(epi => `
+                <label class="flex items-center gap-2 p-2 rounded-lg hover:bg-[#1a2035] cursor-pointer transition">
+                    <input type="checkbox" value="${epi}" class="epi-checkbox w-4 h-4 rounded border-gray-500 text-emerald-500 focus:ring-emerald-500">
+                    <span class="text-gray-300 text-sm">${epi}</span>
+                </label>
+            `).join('');
+            
+            const html = `
+                <div class="space-y-6">
+                    <div class="flex items-center gap-3 border-b border-[#1e2a3e] pb-3">
+                        <div class="bg-blue-600/20 p-2 rounded-xl"><i class="fas fa-microchip text-blue-400 text-xl"></i></div>
+                        <h2 class="text-xl font-bold text-white">Máquinas & EPIs</h2>
+                    </div>
+                    
+                    <!-- Formulário de Nova Máquina -->
+                    <div class="card-glass rounded-2xl p-6">
+                        <h3 class="font-bold text-gray-200 flex items-center gap-2 mb-5"><i class="fas fa-plus-circle text-emerald-400"></i> Nova Máquina</h3>
+                        
+                        <div class="space-y-5">
+                            <div>
+                                <label class="block text-gray-300 font-medium mb-2">Nome da máquina</label>
+                                <input type="text" id="machineName" placeholder="Ex: Prensa Hidráulica, Serra Fita, Esteira..." 
+                                    class="w-full p-3 bg-[#111827] border border-[#1f2a3e] rounded-xl text-white placeholder-gray-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
                             </div>
-                        </div>
-                        <div>
-                            <h3 class="font-bold text-gray-300 mb-3"><i class="fas fa-id-card mr-2"></i> Lista de Funcionários</h3>
-                            <div id="employeeListContainer" class="space-y-2 max-h-[460px] overflow-y-auto">
-                                ${renderEmployeesListDark()}
+                            
+                            <div>
+                                <label class="block text-gray-300 font-medium mb-2">Riscos associados</label>
+                                <div class="bg-[#111827] border border-[#1f2a3e] rounded-xl p-3">
+                                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-1 checkbox-group" style="max-height: 240px; overflow-y: auto;">
+                                        ${risksCheckboxes}
+                                    </div>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-1">Selecione todos os riscos aplicáveis</p>
                             </div>
+                            
+                            <div>
+                                <label class="block text-gray-300 font-medium mb-2">EPIs obrigatórios</label>
+                                <div class="bg-[#111827] border border-[#1f2a3e] rounded-xl p-3">
+                                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-1 checkbox-group" style="max-height: 240px; overflow-y: auto;">
+                                        ${episCheckboxes}
+                                    </div>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-1">Selecione os EPIs necessários para operar esta máquina</p>
+                            </div>
+                            
+                            <button id="addMachineBtn" class="bg-blue-600 hover:bg-blue-500 text-white w-full py-3 rounded-xl font-bold transition shadow-lg">
+                                <i class="fas fa-save mr-2"></i> Registrar Máquina
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Lista de Máquinas Cadastradas -->
+                    <div>
+                        <h3 class="font-bold text-gray-300 mb-3 flex items-center gap-2"><i class="fas fa-list-ul text-blue-400"></i> Máquinas Cadastradas (${machines.length})</h3>
+                        <div id="machineListContainer" class="space-y-3">
+                            ${machines.map(machine => `
+                                <div class="card-glass rounded-xl p-4 hover:border-blue-500/30 transition">
+                                    <div class="flex flex-col md:flex-row justify-between gap-4">
+                                        <div class="flex-1">
+                                            <div class="flex flex-wrap items-center gap-2 mb-2">
+                                                <span class="font-bold text-white text-lg">${escapeHtml(machine.name)}</span>
+                                                <span class="text-xs bg-[#1f2a3e] px-2 py-0.5 rounded-full text-gray-300 font-mono">${machine.id}</span>
+                                            </div>
+                                            <div class="flex flex-wrap gap-1 mb-2">
+                                                ${machine.risks.map(r => `<span class="bg-red-900/40 text-red-300 text-xs px-2 py-1 rounded-full"><i class="fas fa-exclamation-triangle text-[10px] mr-1"></i>${r}</span>`).join('')}
+                                            </div>
+                                            <div class="text-xs text-gray-400"><i class="fas fa-helmet-safety text-emerald-400 mr-1"></i> EPIs: ${machine.requiredEpis.join(', ')}</div>
+                                        </div>
+                                        <div class="flex flex-col items-center gap-2">
+                                            <div id="qr-${machine.id}" class="qr-container bg-gray-900 p-2 rounded-xl"></div>
+                                            <button class="deleteMachineBtn text-red-400 hover:text-red-300 text-sm transition" data-id="${machine.id}">
+                                                <i class="fas fa-trash-alt mr-1"></i> Excluir
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                            ${machines.length === 0 ? '<div class="text-gray-500 text-center p-6 bg-[#111827] rounded-xl">Nenhuma máquina cadastrada. Crie a primeira!</div>' : ''}
                         </div>
                     </div>
                 </div>
             `;
             document.getElementById("dynamicPanel").innerHTML = html;
-            attachDarkAdminEvents();
-        }
-        
-        function renderMachinesListDark() {
-            if(machines.length === 0) return '<div class="text-gray-500 text-center p-6 bg-[#111827] rounded-xl">Nenhuma máquina registrada</div>';
-            return machines.map(machine => `
-                <div class="card-glass rounded-xl p-4 transition-all hover:border-blue-500/50">
-                    <div class="flex flex-col md:flex-row justify-between gap-3">
-                        <div class="flex-1">
-                            <div class="flex flex-wrap items-center gap-2 mb-2">
-                                <span class="font-bold text-white text-lg">${escapeHtml(machine.name)}</span>
-                                <span class="text-xs bg-[#1f2a3e] px-2 py-0.5 rounded-full text-gray-300 font-mono">${machine.id}</span>
-                            </div>
-                            <div class="flex flex-wrap gap-1 mb-2">
-                                ${machine.risks.map(r => `<span class="risk-badge bg-red-900/40 text-red-300 text-xs px-2 py-1 rounded-full border border-red-800/50"><i class="fas fa-skull-crosswalk text-[10px] mr-1"></i>${r}</span>`).join('')}
-                            </div>
-                            <div class="text-xs text-gray-400"><i class="fas fa-helmet-safety text-emerald-400 mr-1"></i> EPIs: ${machine.requiredEpis.join(', ')}</div>
-                        </div>
-                        <div class="flex flex-col items-center gap-2 min-w-[100px]">
-                            <div id="qr-${machine.id}" class="qr-container bg-gray-900 p-2 rounded-xl"></div>
-                            <button class="deleteMachineBtn text-red-400 hover:text-red-300 text-sm font-medium transition" data-id="${machine.id}"><i class="fas fa-trash-alt"></i> Remover</button>
-                        </div>
-                    </div>
-                </div>
-            `).join('');
-        }
-        
-        function renderEmployeesListDark() {
-            if(employees.length === 0) return '<div class="text-gray-500 text-center p-6 bg-[#111827] rounded-xl">Nenhum colaborador</div>';
-            return employees.map(emp => `
-                <div class="bg-[#111827] border border-[#1f2a3e] rounded-xl p-3 flex justify-between items-center hover:bg-[#161e2e] transition">
-                    <div>
-                        <p class="font-semibold text-white">${escapeHtml(emp.name)}</p>
-                        <p class="text-xs text-gray-400">${emp.role} • ${emp.shift} • ID: ${emp.id}</p>
-                    </div>
-                    <button class="deleteEmployeeBtn text-red-400 hover:text-red-300 transition text-lg" data-id="${emp.id}"><i class="fas fa-user-slash"></i></button>
-                </div>
-            `).join('');
-        }
-        
-        function attachDarkAdminEvents() {
-            attachQRCodesDark();
+            
+            // Gerar QR Codes para cada máquina
+            machines.forEach(machine => {
+                const container = document.getElementById(`qr-${machine.id}`);
+                if(container && !container.hasChildNodes()) {
+                    new QRCode(container, { 
+                        text: generateQRCodeUrl(machine.id), 
+                        width: 80, 
+                        height: 80, 
+                        colorDark: "#1e1e2f", 
+                        colorLight: "#ffffff" 
+                    });
+                }
+            });
+            
+            // Evento de cadastro de nova máquina
             document.getElementById("addMachineBtn")?.addEventListener("click", () => {
                 const name = document.getElementById("machineName").value.trim();
-                const risks = Array.from(document.getElementById("machineRisks").selectedOptions).map(o => o.value);
-                const epis = Array.from(document.getElementById("machineEpis").selectedOptions).map(o => o.value);
+                const selectedRisks = Array.from(document.querySelectorAll(".risk-checkbox:checked")).map(cb => cb.value);
+                const selectedEpis = Array.from(document.querySelectorAll(".epi-checkbox:checked")).map(cb => cb.value);
+                
                 if(!name) return showToast("Informe o nome da máquina", "error");
-                if(risks.length === 0) return showToast("Selecione riscos", "error");
-                if(epis.length === 0) return showToast("Selecione EPIs", "error");
+                if(selectedRisks.length === 0) return showToast("Selecione ao menos um risco", "error");
+                if(selectedEpis.length === 0) return showToast("Selecione ao menos um EPI obrigatório", "error");
+                
                 const newId = `MACH-${String(machines.length+1).padStart(3,'0')}`;
-                machines.push({ id: newId, name, risks, requiredEpis: epis });
+                machines.push({ 
+                    id: newId, 
+                    name: name, 
+                    risks: selectedRisks, 
+                    requiredEpis: selectedEpis 
+                });
                 saveData();
-                renderFullAdmin();
-                showToast(`Máquina ${name} criada com sucesso!`, "success");
+                renderMachinesModule();
+                showToast(`Máquina "${name}" cadastrada com sucesso!`, "success");
             });
+            
+            // Evento de exclusão de máquina
             document.querySelectorAll(".deleteMachineBtn").forEach(btn => {
                 btn.addEventListener("click", (e) => {
                     const id = btn.dataset.id;
+                    const machineName = machines.find(m => m.id === id)?.name;
                     machines = machines.filter(m => m.id !== id);
                     saveData();
-                    renderFullAdmin();
-                    showToast("Máquina removida", "success");
+                    renderMachinesModule();
+                    showToast(`Máquina "${machineName}" removida`, "success");
                 });
             });
+        }
+        
+        // ================================
+        // 4. MÓDULO COLABORADORES
+        // ================================
+        function renderEmployeesModule() {
+            const html = `
+                <div class="space-y-6">
+                    <div class="flex items-center gap-3 border-b border-[#1e2a3e] pb-3">
+                        <div class="bg-emerald-600/20 p-2 rounded-xl"><i class="fas fa-users text-emerald-400 text-xl"></i></div>
+                        <h2 class="text-xl font-bold text-white">Colaboradores</h2>
+                    </div>
+                    <div class="card-glass rounded-2xl p-6">
+                        <h3 class="font-bold text-gray-200 mb-4"><i class="fas fa-user-plus text-emerald-400 mr-2"></i> Adicionar Funcionário</h3>
+                        <div class="space-y-4">
+                            <input type="text" id="empName" placeholder="Nome completo" class="w-full p-3 bg-[#111827] border border-[#1f2a3e] rounded-xl text-white placeholder-gray-500">
+                            <input type="text" id="empRole" placeholder="Cargo (Ex: Operador, Técnico, Supervisor)" class="w-full p-3 bg-[#111827] border border-[#1f2a3e] rounded-xl text-white placeholder-gray-500">
+                            <select id="empShift" class="w-full p-3 bg-[#111827] border border-[#1f2a3e] rounded-xl text-white">
+                                <option value="Matutino">Matutino (06:00 - 14:00)</option>
+                                <option value="Vespertino">Vespertino (14:00 - 22:00)</option>
+                                <option value="Noturno">Noturno (22:00 - 06:00)</option>
+                                <option value="Administrativo">Administrativo</option>
+                            </select>
+                            <button id="addEmployeeBtn" class="bg-emerald-600 hover:bg-emerald-500 text-white w-full py-3 rounded-xl font-bold transition">
+                                <i class="fas fa-user-check mr-2"></i> Cadastrar Funcionário
+                            </button>
+                        </div>
+                    </div>
+                    <div class="space-y-2">
+                        <h3 class="font-bold text-gray-300 mb-3">Funcionários Ativos</h3>
+                        ${employees.map(emp => `
+                            <div class="bg-[#111827] border border-[#1f2a3e] rounded-xl p-3 flex justify-between items-center hover:bg-[#161e2e] transition">
+                                <div>
+                                    <p class="font-semibold text-white">${escapeHtml(emp.name)}</p>
+                                    <p class="text-xs text-gray-400">${emp.role} • ${emp.shift} • ID: ${emp.id}</p>
+                                </div>
+                                <button class="deleteEmployeeBtn text-red-400 hover:text-red-300 transition px-3 py-1 rounded-lg" data-id="${emp.id}">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </div>
+                        `).join('')}
+                        ${employees.length === 0 ? '<div class="text-gray-500 text-center p-6 bg-[#111827] rounded-xl">Nenhum colaborador cadastrado</div>' : ''}
+                    </div>
+                </div>
+            `;
+            document.getElementById("dynamicPanel").innerHTML = html;
+            
             document.getElementById("addEmployeeBtn")?.addEventListener("click", () => {
                 const name = document.getElementById("empName").value.trim();
                 const role = document.getElementById("empRole").value.trim();
@@ -390,250 +513,286 @@
                 const newId = `FUNC-${String(employees.length + 100).slice(-3)}`;
                 employees.push({ id: newId, name, role, shift, sector: "Operações" });
                 saveData();
-                renderFullAdmin();
-                showToast(`Funcionário ${name} cadastrado`, "success");
+                renderEmployeesModule();
+                showToast(`Funcionário ${name} cadastrado com sucesso!`, "success");
             });
+            
             document.querySelectorAll(".deleteEmployeeBtn").forEach(btn => {
-                btn.addEventListener("click", (e) => {
+                btn.addEventListener("click", () => {
                     const id = btn.dataset.id;
+                    const empName = employees.find(e => e.id === id)?.name;
                     employees = employees.filter(e => e.id !== id);
                     saveData();
-                    renderFullAdmin();
-                    showToast("Colaborador removido", "success");
+                    renderEmployeesModule();
+                    showToast(`Funcionário ${empName} removido`, "success");
                 });
             });
         }
         
-        function attachQRCodesDark() {
-            machines.forEach(machine => {
-                const container = document.getElementById(`qr-${machine.id}`);
-                if(container && !container.hasChildNodes()) {
-                    new QRCode(container, {
-                        text: generateQRCodeUrl(machine.id),
-                        width: 80,
-                        height: 80,
-                        colorDark: "#1e1e2f",
-                        colorLight: "#ffffff",
-                        correctLevel: QRCode.CorrectLevel.M
-                    });
+        // ================================
+        // 5. CHECKLIST COM CÂMERA E SELFIE
+        // ================================
+        let currentStream = null;
+        let currentFacingMode = "environment";
+        let countdownInterval = null;
+        
+        async function initCamera(previewElement, facingMode) {
+            if(currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+            }
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: facingMode } } });
+                previewElement.srcObject = stream;
+                currentStream = stream;
+                return true;
+            } catch (err) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facingMode } });
+                    previewElement.srcObject = stream;
+                    currentStream = stream;
+                    return true;
+                } catch (e) {
+                    return false;
                 }
-            });
+            }
         }
         
-        // ================================
-        // 3. CHECKLIST COM SELFIE (DROPDOWN + FOTO)
-        // ================================
-        let currentSelfieDataUrl = null;
+        function stopCamera() {
+            if(currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+                currentStream = null;
+            }
+        }
         
-        function renderChecklistModule(machineId) {
-            const machine = machines.find(m => m.id === machineId);
-            if(!machine) {
-                document.getElementById("dynamicPanel").innerHTML = `<div class="card-glass rounded-2xl p-8 text-center"><i class="fas fa-frown text-5xl text-red-400 mb-3"></i><h2 class="text-xl text-white">Máquina não localizada</h2><button id="backHome" class="mt-4 bg-indigo-600 px-5 py-2 rounded-xl">Voltar</button></div>`;
-                document.getElementById("backHome")?.addEventListener("click", () => renderFullAdmin());
+        function renderChecklistModule() {
+            if(machines.length === 0) {
+                document.getElementById("dynamicPanel").innerHTML = `<div class="card-glass rounded-2xl p-8 text-center"><i class="fas fa-exclamation-triangle text-yellow-400 text-4xl"></i><p class="text-white mt-2">Nenhuma máquina cadastrada</p><button id="goMachines" class="mt-4 bg-blue-600 px-5 py-2 rounded-xl">Cadastrar Máquina</button></div>`;
+                document.getElementById("goMachines")?.addEventListener("click", () => renderMachinesModule());
                 return;
             }
             
-            currentSelfieDataUrl = null;
-            
-            const epiItems = machine.requiredEpis.map(epi => `
-                <label class="flex items-center gap-3 p-3 bg-[#111827] rounded-xl cursor-pointer hover:bg-[#1a2035] transition border border-[#1f2a3e]">
-                    <input type="checkbox" data-epi="${epi}" class="check-epi w-5 h-5 text-green-500 rounded focus:ring-green-400">
-                    <span class="text-gray-200">${escapeHtml(epi)}</span>
-                </label>
-            `).join('');
+            const machineSelect = `<select id="checklistMachineSelect" class="w-full p-3 bg-[#111827] border border-[#1f2a3e] rounded-xl text-white mb-4">${machines.map(m => `<option value="${m.id}">${m.name} (${m.id})</option>`).join('')}</select>`;
             
             const html = `
-                <div class="max-w-3xl mx-auto">
-                    <div class="card-glass rounded-2xl p-6 shadow-2xl">
-                        <div class="flex items-center gap-3 mb-6 border-b border-[#1e2a3e] pb-4">
-                            <i class="fas fa-qrcode text-3xl text-purple-400"></i>
-                            <div><h2 class="text-2xl font-bold text-white">Checklist de Segurança</h2><p class="text-gray-400 text-sm">Validação de EPIs + Selfie comprobatória</p></div>
+                <div class="max-w-4xl mx-auto space-y-6">
+                    <div class="flex items-center gap-3 border-b border-[#1e2a3e] pb-3">
+                        <div class="bg-cyan-600/20 p-2 rounded-xl"><i class="fas fa-camera text-cyan-400 text-xl"></i></div>
+                        <h2 class="text-xl font-bold text-white">Checklist com Selfie Comprobatória</h2>
+                    </div>
+                    <div class="card-glass rounded-2xl p-6">
+                        <label class="block text-gray-300 mb-2">Selecione a Máquina:</label>
+                        ${machineSelect}
+                        <div id="epiCheckArea" class="mt-4"></div>
+                        <div id="statusMessage" class="mt-4 p-3 rounded-xl text-center bg-gray-800/50 text-gray-300"></div>
+                    </div>
+                    <div id="cameraSection" class="card-glass rounded-2xl p-6 hidden">
+                        <h3 class="font-bold text-white mb-3"><i class="fas fa-video text-purple-400 mr-2"></i> Selfie Comprobatória</h3>
+                        <div class="flex gap-2 mb-4">
+                            <button id="switchCameraBtn" class="flex-1 bg-purple-600/30 hover:bg-purple-600/50 text-purple-300 py-2 rounded-xl"><i class="fas fa-sync-alt mr-2"></i> Alternar Câmera</button>
                         </div>
-                        <div class="bg-gradient-to-r from-blue-900/30 to-indigo-900/30 p-5 rounded-xl mb-6">
-                            <p class="text-sm text-gray-300">Máquina: <span class="font-bold text-white">${escapeHtml(machine.name)}</span> (${machine.id})</p>
-                            <div class="flex flex-wrap gap-2 mt-3"><span class="text-xs text-gray-300">Riscos:</span>${machine.risks.map(r => `<span class="bg-red-900/60 text-red-200 px-2 py-0.5 rounded-full text-xs">${r}</span>`).join('')}</div>
-                        </div>
-                        <div class="space-y-2" id="epiChecklistContainer">${epiItems}</div>
-                        <div id="statusMessage" class="mt-6 p-4 rounded-xl text-center font-bold text-lg bg-gray-800/50 text-gray-300">⏳ Aguardando confirmação dos EPIs</div>
-                        
-                        <!-- DROPDOWN DE SELFIE (inicialmente escondido) -->
-                        <div id="selfieSection" class="mt-6 hidden transition-all duration-300">
-                            <div class="border-t border-[#1e2a3e] pt-4">
-                                <h3 class="font-bold text-white flex items-center gap-2 mb-3"><i class="fas fa-camera text-purple-400"></i> Comprovação com Selfie</h3>
-                                <p class="text-xs text-gray-400 mb-3">Tire uma foto mostrando o uso correto dos EPIs</p>
-                                
-                                <!-- Opções de captura: arquivo ou câmera -->
-                                <div class="space-y-3">
-                                    <input type="file" id="selfieInput" accept="image/*" capture="environment" class="w-full p-2 bg-[#111827] border border-[#1f2a3e] rounded-xl text-gray-300 text-sm">
-                                    <button id="openCameraBtn" class="w-full bg-purple-600/30 hover:bg-purple-600/50 text-purple-300 py-2 rounded-xl transition flex items-center justify-center gap-2 border border-purple-500/30">
-                                        <i class="fas fa-camera-retro"></i> Abrir câmera (dispositivo móvel)
-                                    </button>
-                                </div>
-                                
-                                <!-- Preview da selfie -->
-                                <div id="selfiePreview" class="mt-4 hidden">
-                                    <div class="relative rounded-xl overflow-hidden border-2 border-emerald-500/50 selfie-preview">
-                                        <img id="selfieImg" class="w-full max-h-64 object-cover" alt="Selfie comprobatória">
-                                        <button id="removeSelfieBtn" class="absolute top-2 right-2 bg-red-600/80 hover:bg-red-600 text-white p-1.5 rounded-full text-xs">
-                                            <i class="fas fa-times"></i>
-                                        </button>
-                                    </div>
-                                    <p class="text-emerald-400 text-xs text-center mt-2"><i class="fas fa-check-circle"></i> Selfie capturada com sucesso!</p>
-                                </div>
-                                
-                                <button id="confirmSelfieBtn" class="mt-4 w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-xl font-bold transition disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                                    <i class="fas fa-check-double mr-2"></i> Finalizar Checklist com Selfie
-                                </button>
+                        <div class="relative bg-black rounded-xl overflow-hidden aspect-video">
+                            <video id="videoPreview" class="w-full h-full object-cover video-preview" autoplay playsinline muted></video>
+                            <div id="countdownOverlay" class="absolute inset-0 flex items-center justify-center bg-black/70 hidden">
+                                <span id="countdownNumber" class="text-8xl font-bold text-white">3</span>
                             </div>
                         </div>
-                        
-                        <button id="resetChecklist" class="mt-4 w-full bg-[#1f2a3e] hover:bg-[#2a374e] text-white py-2 rounded-xl transition"><i class="fas fa-sync-alt mr-2"></i>Resetar EPIs</button>
-                        <button id="backFromChecklist" class="mt-4 text-blue-400 hover:text-blue-300 text-sm w-full">← Voltar ao Admin</button>
+                        <div class="flex gap-2 mt-4">
+                            <button id="takePhotoBtn" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-xl font-bold"><i class="fas fa-camera mr-2"></i> Tirar Selfie (3s)</button>
+                            <button id="uploadFallbackBtn" class="flex-1 bg-gray-600 hover:bg-gray-500 text-white py-3 rounded-xl"><i class="fas fa-upload mr-2"></i> Upload</button>
+                        </div>
+                        <div id="selfiePreviewArea" class="mt-4 hidden">
+                            <div class="relative rounded-xl overflow-hidden border-2 border-emerald-500">
+                                <img id="capturedSelfie" class="w-full max-h-48 object-cover" alt="Selfie">
+                                <button id="removeSelfieBtnCam" class="absolute top-2 right-2 bg-red-600 p-1.5 rounded-full"><i class="fas fa-times text-white text-xs"></i></button>
+                            </div>
+                        </div>
+                        <button id="finalizeChecklistBtn" class="mt-4 w-full bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-xl font-bold disabled:opacity-50" disabled>
+                            <i class="fas fa-check-double mr-2"></i> Finalizar Checklist
+                        </button>
                     </div>
                 </div>
             `;
             document.getElementById("dynamicPanel").innerHTML = html;
             
-            const checkboxes = document.querySelectorAll(".check-epi");
-            const statusDiv = document.getElementById("statusMessage");
-            const selfieSection = document.getElementById("selfieSection");
-            const selfieInput = document.getElementById("selfieInput");
-            const openCameraBtn = document.getElementById("openCameraBtn");
-            const selfiePreview = document.getElementById("selfiePreview");
-            const selfieImg = document.getElementById("selfieImg");
-            const confirmSelfieBtn = document.getElementById("confirmSelfieBtn");
-            const removeSelfieBtn = document.getElementById("removeSelfieBtn");
+            let currentMachine = null;
+            let allEpisChecked = false;
+            let capturedSelfieData = null;
+            let videoPreview = document.getElementById("videoPreview");
             
-            let allEpisConfirmed = false;
-            
-            function updateStatus() {
-                const allChecked = Array.from(checkboxes).every(cb => cb.checked);
-                allEpisConfirmed = allChecked && checkboxes.length > 0;
+            function loadEpisForMachine() {
+                const select = document.getElementById("checklistMachineSelect");
+                currentMachine = machines.find(m => m.id === select.value);
+                if(!currentMachine) return;
                 
-                if(allEpisConfirmed) {
-                    statusDiv.innerHTML = '<i class="fas fa-check-circle mr-2"></i> CONFORME - Todos os EPIs utilizados!';
-                    statusDiv.className = "mt-6 p-4 rounded-xl text-center font-bold text-lg bg-emerald-900/60 text-emerald-200 border border-emerald-500";
-                    // Mostra o dropdown de selfie com animação
-                    selfieSection.classList.remove("hidden");
-                    selfieSection.classList.add("slide-enter");
-                } else {
-                    statusDiv.innerHTML = `<i class="fas fa-times-circle mr-2"></i> NÃO CONFORME - Marque todos os ${checkboxes.length} EPIs.`;
-                    statusDiv.className = "mt-6 p-4 rounded-xl text-center font-bold text-lg bg-red-900/60 text-red-200 border border-red-500";
-                    // Esconde seção de selfie se não estiver conforme
-                    selfieSection.classList.add("hidden");
-                    currentSelfieDataUrl = null;
-                    selfiePreview.classList.add("hidden");
-                    if(confirmSelfieBtn) confirmSelfieBtn.disabled = true;
+                const epiHtml = `
+                    <label class="block text-gray-300 mb-2 font-bold">EPIs Obrigatórios para ${currentMachine.name}:</label>
+                    <div class="space-y-2">
+                        ${currentMachine.requiredEpis.map(epi => `
+                            <label class="flex items-center gap-3 p-3 bg-[#111827] rounded-xl cursor-pointer hover:bg-[#1a2035] transition">
+                                <input type="checkbox" data-epi="${epi}" class="check-epi w-5 h-5 text-green-500 rounded">
+                                <span class="text-gray-200">${escapeHtml(epi)}</span>
+                            </label>
+                        `).join('')}
+                    </div>
+                `;
+                document.getElementById("epiCheckArea").innerHTML = epiHtml;
+                
+                const checkboxes = document.querySelectorAll(".check-epi");
+                const statusDiv = document.getElementById("statusMessage");
+                const cameraSection = document.getElementById("cameraSection");
+                
+                function updateEpiStatus() {
+                    allEpisChecked = Array.from(checkboxes).every(cb => cb.checked) && checkboxes.length > 0;
+                    if(allEpisChecked) {
+                        statusDiv.innerHTML = '<i class="fas fa-check-circle mr-2"></i> CONFORME - Todos os EPIs marcados!';
+                        statusDiv.className = "mt-4 p-3 rounded-xl text-center font-bold bg-emerald-900/60 text-emerald-200 border border-emerald-500";
+                        cameraSection.classList.remove("hidden");
+                    } else {
+                        statusDiv.innerHTML = `<i class="fas fa-times-circle mr-2"></i> NÃO CONFORME - Marque todos os EPIs.`;
+                        statusDiv.className = "mt-4 p-3 rounded-xl text-center font-bold bg-red-900/60 text-red-200 border border-red-500";
+                        cameraSection.classList.add("hidden");
+                        capturedSelfieData = null;
+                        document.getElementById("selfiePreviewArea")?.classList.add("hidden");
+                        document.getElementById("finalizeChecklistBtn").disabled = true;
+                    }
                 }
-                updateConfirmButtonState();
+                checkboxes.forEach(cb => cb.addEventListener("change", updateEpiStatus));
+                updateEpiStatus();
             }
             
-            function updateConfirmButtonState() {
-                if(confirmSelfieBtn) {
-                    const hasSelfie = currentSelfieDataUrl !== null;
-                    confirmSelfieBtn.disabled = !(allEpisConfirmed && hasSelfie);
+            document.getElementById("checklistMachineSelect")?.addEventListener("change", loadEpisForMachine);
+            loadEpisForMachine();
+            
+            async function startCamera() {
+                const success = await initCamera(videoPreview, currentFacingMode);
+                if(!success) {
+                    showToast("Câmera não disponível. Use o botão Upload", "warning");
+                    document.getElementById("takePhotoBtn").disabled = true;
                 }
             }
             
-            // Capturar selfie via arquivo
-            selfieInput?.addEventListener("change", (e) => {
-                const file = e.target.files[0];
-                if(file) {
-                    const reader = new FileReader();
-                    reader.onload = (event) => {
-                        currentSelfieDataUrl = event.target.result;
-                        selfieImg.src = currentSelfieDataUrl;
-                        selfiePreview.classList.remove("hidden");
-                        updateConfirmButtonState();
-                        showToast("Selfie carregada com sucesso!", "success");
-                    };
-                    reader.readAsDataURL(file);
-                }
+            document.getElementById("switchCameraBtn")?.addEventListener("click", async () => {
+                currentFacingMode = currentFacingMode === "environment" ? "user" : "environment";
+                await startCamera();
+                showToast(`Câmera ${currentFacingMode === "environment" ? "traseira" : "frontal"} ativada`, "info");
             });
             
-            // Abrir câmera (capture em dispositivos móveis)
-            openCameraBtn?.addEventListener("click", () => {
-                // Cria input com capture para forçar câmera
-                const cameraInput = document.createElement("input");
-                cameraInput.type = "file";
-                cameraInput.accept = "image/*";
-                cameraInput.capture = "environment";
-                cameraInput.onchange = (e) => {
+            function startCountdown() {
+                let count = 3;
+                const overlay = document.getElementById("countdownOverlay");
+                const numberSpan = document.getElementById("countdownNumber");
+                overlay.classList.remove("hidden");
+                numberSpan.textContent = count;
+                if(countdownInterval) clearInterval(countdownInterval);
+                countdownInterval = setInterval(() => {
+                    count--;
+                    if(count >= 0) numberSpan.textContent = count;
+                    if(count < 0) {
+                        clearInterval(countdownInterval);
+                        overlay.classList.add("hidden");
+                        capturePhoto();
+                    }
+                }, 1000);
+            }
+            
+            function capturePhoto() {
+                if(!videoPreview.videoWidth) return showToast("Câmera não está pronta", "error");
+                const canvas = document.createElement("canvas");
+                canvas.width = videoPreview.videoWidth;
+                canvas.height = videoPreview.videoHeight;
+                canvas.getContext("2d").drawImage(videoPreview, 0, 0);
+                capturedSelfieData = canvas.toDataURL("image/jpeg", 0.9);
+                document.getElementById("capturedSelfie").src = capturedSelfieData;
+                document.getElementById("selfiePreviewArea").classList.remove("hidden");
+                document.getElementById("finalizeChecklistBtn").disabled = false;
+                showToast("Selfie capturada!", "success");
+            }
+            
+            document.getElementById("takePhotoBtn")?.addEventListener("click", () => {
+                if(allEpisChecked) startCountdown();
+                else showToast("Marque todos os EPIs primeiro", "error");
+            });
+            
+            document.getElementById("uploadFallbackBtn")?.addEventListener("click", () => {
+                if(!allEpisChecked) return showToast("Marque todos os EPIs primeiro", "error");
+                const input = document.createElement("input");
+                input.type = "file";
+                input.accept = "image/*";
+                input.onchange = (e) => {
                     const file = e.target.files[0];
                     if(file) {
                         const reader = new FileReader();
                         reader.onload = (ev) => {
-                            currentSelfieDataUrl = ev.target.result;
-                            selfieImg.src = currentSelfieDataUrl;
-                            selfiePreview.classList.remove("hidden");
-                            updateConfirmButtonState();
-                            showToast("Selfie capturada pela câmera!", "success");
+                            capturedSelfieData = ev.target.result;
+                            document.getElementById("capturedSelfie").src = capturedSelfieData;
+                            document.getElementById("selfiePreviewArea").classList.remove("hidden");
+                            document.getElementById("finalizeChecklistBtn").disabled = false;
+                            showToast("Foto enviada!", "success");
                         };
                         reader.readAsDataURL(file);
                     }
                 };
-                cameraInput.click();
+                input.click();
             });
             
-            // Remover selfie
-            removeSelfieBtn?.addEventListener("click", () => {
-                currentSelfieDataUrl = null;
-                selfiePreview.classList.add("hidden");
-                selfieInput.value = "";
-                updateConfirmButtonState();
-                showToast("Selfie removida", "info");
+            document.getElementById("removeSelfieBtnCam")?.addEventListener("click", () => {
+                capturedSelfieData = null;
+                document.getElementById("selfiePreviewArea").classList.add("hidden");
+                document.getElementById("finalizeChecklistBtn").disabled = true;
             });
             
-            // Finalizar checklist com selfie
-            confirmSelfieBtn?.addEventListener("click", () => {
-                if(allEpisConfirmed && currentSelfieDataUrl) {
-                    // Salvar no histórico
-                    const record = {
-                        machineId: machine.id,
-                        machineName: machine.name,
+            document.getElementById("finalizeChecklistBtn")?.addEventListener("click", () => {
+                if(allEpisChecked && capturedSelfieData && currentMachine) {
+                    checklistHistory.push({
+                        machineId: currentMachine.id,
+                        machineName: currentMachine.name,
                         timestamp: new Date().toISOString(),
-                        selfie: currentSelfieDataUrl,
-                        episUsed: machine.requiredEpis
-                    };
-                    checklistHistory.push(record);
+                        selfie: capturedSelfieData,
+                        episUsed: currentMachine.requiredEpis
+                    });
                     saveData();
-                    showToast("✅ Checklist finalizado com sucesso! Selfie comprobatória registrada.", "success");
-                    // Opcional: voltar ao admin após 2 segundos
-                    setTimeout(() => renderFullAdmin(), 2000);
+                    showToast("Checklist finalizado! Selfie registrada.", "success");
+                    stopCamera();
+                    setTimeout(() => renderChecklistModule(), 2000);
                 }
             });
             
-            checkboxes.forEach(cb => cb.addEventListener("change", updateStatus));
-            document.getElementById("resetChecklist")?.addEventListener("click", () => { 
-                checkboxes.forEach(cb => cb.checked = false); 
-                currentSelfieDataUrl = null;
-                selfiePreview.classList.add("hidden");
-                if(selfieInput) selfieInput.value = "";
-                updateStatus();
-                showToast("Checklist resetado", "info");
-            });
-            document.getElementById("backFromChecklist")?.addEventListener("click", () => renderFullAdmin());
-            updateStatus();
+            startCamera();
         }
         
-        function showQRSimulator() {
-            if(!machines.length) {
-                document.getElementById("dynamicPanel").innerHTML = `<div class="card-glass p-8 text-center"><i class="fas fa-exclamation-triangle text-yellow-400 text-4xl"></i><p class="text-white mt-2">Nenhuma máquina cadastrada</p><button id="goAdminBtn" class="mt-4 bg-blue-600 px-5 py-2 rounded-xl">Ir para Admin</button></div>`;
-                document.getElementById("goAdminBtn")?.addEventListener("click", () => renderFullAdmin());
-                return;
-            }
-            const selectHtml = `<select id="simulateSelect" class="w-full p-3 bg-[#111827] border border-[#1f2a3e] rounded-xl text-white mb-4">${machines.map(m => `<option value="${m.id}">${m.name} (${m.id})</option>`).join('')}</select>`;
-            const html = `<div class="max-w-md mx-auto card-glass rounded-2xl p-7"><i class="fas fa-qrcode text-5xl text-purple-400 mb-4 block text-center"></i><h2 class="text-2xl font-bold text-white text-center mb-4">Simular QR Code</h2>${selectHtml}<button id="simulateBtn" class="bg-emerald-600 w-full py-3 rounded-xl font-bold hover:bg-emerald-500 transition"><i class="fas fa-clipboard-check mr-2"></i>Acessar Checklist com Selfie</button><button id="backAdminSim" class="mt-4 text-gray-400 text-sm w-full">← Voltar</button></div>`;
+        function renderHistoryModule() {
+            const html = `
+                <div class="space-y-6">
+                    <div class="flex items-center gap-3 border-b border-[#1e2a3e] pb-3">
+                        <div class="bg-purple-600/20 p-2 rounded-xl"><i class="fas fa-history text-purple-400 text-xl"></i></div>
+                        <h2 class="text-xl font-bold text-white">Histórico de Inspeções</h2>
+                    </div>
+                    <div class="card-glass rounded-2xl p-5">
+                        ${checklistHistory.length === 0 ? '<p class="text-gray-400 text-center py-8">Nenhuma inspeção realizada ainda</p>' : 
+                            [...checklistHistory].reverse().map((item) => `
+                                <div class="border-b border-[#1e2a3e] py-4">
+                                    <div class="flex justify-between items-start gap-3">
+                                        <div class="flex-1">
+                                            <p class="text-white font-bold">${item.machineName}</p>
+                                            <p class="text-gray-400 text-sm">${new Date(item.timestamp).toLocaleString('pt-BR')}</p>
+                                            <p class="text-xs text-emerald-400 mt-1"><i class="fas fa-check-circle"></i> EPIs: ${item.episUsed.join(', ')}</p>
+                                        </div>
+                                        <img src="${item.selfie}" class="w-16 h-16 rounded-lg object-cover border border-emerald-500" alt="Selfie">
+                                    </div>
+                                </div>
+                            `).join('')
+                        }
+                    </div>
+                </div>
+            `;
             document.getElementById("dynamicPanel").innerHTML = html;
-            document.getElementById("simulateBtn")?.addEventListener("click", () => renderChecklistModule(document.getElementById("simulateSelect").value));
-            document.getElementById("backAdminSim")?.addEventListener("click", () => renderFullAdmin());
         }
         
         function handleRoute() {
             const params = new URLSearchParams(window.location.search);
             const machineId = params.get("checklist");
             if(machineId && machines.find(m => m.id === machineId)) {
-                renderChecklistModule(machineId);
+                renderChecklistModule();
                 return true;
             }
             return false;
@@ -641,15 +800,17 @@
         
         function init() {
             initMobileMenu();
-            if(!handleRoute()) renderFullAdmin();
-            document.getElementById("navAdmin")?.addEventListener("click", () => { renderFullAdmin(); window.history.pushState({}, "", window.location.pathname); });
-            document.getElementById("navMachines")?.addEventListener("click", () => { renderFullAdmin(); });
-            document.getElementById("navEmployees")?.addEventListener("click", () => { renderFullAdmin(); });
-            document.getElementById("navQRSImulator")?.addEventListener("click", () => { showQRSimulator(); });
+            if(!handleRoute()) renderDashboard();
+            document.getElementById("navDashboard")?.addEventListener("click", () => { stopCamera(); renderDashboard(); });
+            document.getElementById("navMachines")?.addEventListener("click", () => { stopCamera(); renderMachinesModule(); });
+            document.getElementById("navEmployees")?.addEventListener("click", () => { stopCamera(); renderEmployeesModule(); });
+            document.getElementById("navChecklist")?.addEventListener("click", () => { stopCamera(); renderChecklistModule(); });
+            document.getElementById("navHistory")?.addEventListener("click", () => { stopCamera(); renderHistoryModule(); });
         }
         
-        function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, function(m) { if(m === '&') return '&amp;'; if(m === '<') return '&lt;'; if(m === '>') return '&gt;'; return m; }); }
+        function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[m])); }
         init();
     </script>
 </body>
 </html>
+```
