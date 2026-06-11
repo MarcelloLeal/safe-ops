@@ -1,5 +1,3 @@
-Aqui está a versão corrigida com a funcionalidade solicitada: no mobile, ao clicar em qualquer item do menu lateral, o menu é automaticamente recolhido para a esquerda.
-```html
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -96,7 +94,6 @@ Aqui está a versão corrigida com a funcionalidade solicitada: no mobile, ao cl
         .checkbox-group::-webkit-scrollbar {
             width: 4px;
         }
-        /* Garantir que o overlay cubra todo o conteúdo */
         #mobileOverlay {
             transition: opacity 0.3s ease;
         }
@@ -108,11 +105,25 @@ Aqui está a versão corrigida com a funcionalidade solicitada: no mobile, ao cl
             opacity: 1;
             visibility: visible;
         }
+        /* Animação do modal de login */
+        .login-modal {
+            animation: fadeInScale 0.3s ease-out;
+        }
+        @keyframes fadeInScale {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
     </style>
 </head>
 <body class="bg-[#0a0f1a] font-sans antialiased">
 
-    <!-- Mobile Overlay (fundo escuro quando menu aberto) -->
+    <!-- Mobile Overlay -->
     <div id="mobileOverlay" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 hidden md:hidden transition-all duration-300"></div>
 
     <div class="flex min-h-screen">
@@ -129,35 +140,20 @@ Aqui está a versão corrigida com a funcionalidade solicitada: no mobile, ao cl
                     </div>
                 </div>
             </div>
-            <nav class="flex-1 py-6 px-4 space-y-2">
-                <button id="navDashboard" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:bg-[#1a2035] hover:text-white transition-all group">
-                    <i class="fas fa-tachometer-alt w-5 text-indigo-400"></i>
-                    <span class="font-medium">Dashboard</span>
-                </button>
-                <button id="navMachines" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:bg-[#1a2035] hover:text-white transition-all group">
-                    <i class="fas fa-microchip w-5 text-blue-400"></i>
-                    <span class="font-medium">Máquinas & EPIs</span>
-                </button>
-                <button id="navEmployees" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:bg-[#1a2035] hover:text-white transition-all group">
-                    <i class="fas fa-users w-5 text-emerald-400"></i>
-                    <span class="font-medium">Colaboradores</span>
-                </button>
-                <div class="h-px bg-[#1e2a3e] my-3"></div>
-                <button id="navChecklist" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:bg-[#1a2035] hover:text-white transition-all group">
-                    <i class="fas fa-clipboard-list w-5 text-cyan-400"></i>
-                    <span class="font-medium">Checklist + Selfie</span>
-                </button>
-                <button id="navHistory" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:bg-[#1a2035] hover:text-white transition-all group">
-                    <i class="fas fa-history w-5 text-purple-400"></i>
-                    <span class="font-medium">Histórico de Inspeções</span>
-                </button>
+            <nav class="flex-1 py-6 px-4 space-y-2" id="mainNav">
+                <!-- Menu items serão injetados dinamicamente conforme perfil -->
             </nav>
             <div class="p-4 border-t border-[#1e2a3e] text-xs text-gray-500">
-                <div class="flex items-center gap-2 mb-2">
-                    <i class="fas fa-shield-alt text-emerald-500"></i>
-                    <span>ISO 45001:2023</span>
+                <div class="flex items-center justify-between mb-2">
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-shield-alt text-emerald-500"></i>
+                        <span>ISO 45001:2023</span>
+                    </div>
+                    <button id="logoutBtn" class="text-red-400 hover:text-red-300 text-xs flex items-center gap-1">
+                        <i class="fas fa-sign-out-alt"></i> Sair
+                    </button>
                 </div>
-                <p class="text-[11px]">v4.0 • Selfie com temporizador</p>
+                <p class="text-[11px]" id="userInfoDisplay"></p>
             </div>
         </aside>
 
@@ -170,7 +166,7 @@ Aqui está a versão corrigida com a funcionalidade solicitada: no mobile, ao cl
                 <div class="flex items-center gap-3 ml-auto">
                     <div class="hidden sm:flex items-center gap-2 bg-[#111827] px-3 py-1.5 rounded-full border border-[#1e2a3e]">
                         <i class="fas fa-circle text-emerald-500 text-xs"></i>
-                        <span class="text-xs text-gray-300">Sistema operacional</span>
+                        <span class="text-xs text-gray-300" id="statusBadge">Sistema operacional</span>
                     </div>
                     <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center shadow-lg">
                         <i class="fas fa-user-shield text-white text-sm"></i>
@@ -184,6 +180,46 @@ Aqui está a versão corrigida com a funcionalidade solicitada: no mobile, ao cl
                 </div>
             </div>
         </main>
+    </div>
+
+    <!-- MODAL DE LOGIN -->
+    <div id="loginModal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] flex items-center justify-center p-4 transition-all">
+        <div class="login-modal card-glass rounded-2xl p-8 max-w-md w-full shadow-2xl">
+            <div class="text-center mb-6">
+                <div class="bg-gradient-to-br from-red-600 to-red-800 p-3 rounded-2xl inline-block mb-3">
+                    <i class="fas fa-hard-hat text-white text-3xl"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-white">SafeOps</h2>
+                <p class="text-gray-400 text-sm mt-1">Sistema de Segurança Industrial</p>
+            </div>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-gray-300 text-sm mb-2">Usuário</label>
+                    <input type="text" id="loginUser" placeholder="Digite seu usuário" 
+                        class="w-full p-3 bg-[#111827] border border-[#1f2a3e] rounded-xl text-white placeholder-gray-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-gray-300 text-sm mb-2">Senha</label>
+                    <input type="password" id="loginPass" placeholder="Digite sua senha" 
+                        class="w-full p-3 bg-[#111827] border border-[#1f2a3e] rounded-xl text-white placeholder-gray-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                </div>
+                
+                <div class="bg-[#111827] rounded-xl p-3 border border-[#1f2a3e]">
+                    <p class="text-xs text-gray-400 mb-2">🔐 Credenciais de demonstração:</p>
+                    <div class="grid grid-cols-2 gap-2 text-xs">
+                        <div class="text-emerald-400">👑 Admin:</div>
+                        <div class="text-gray-300">admin / admin123</div>
+                        <div class="text-cyan-400">👤 Colaborador:</div>
+                        <div class="text-gray-300">colab / colab123</div>
+                    </div>
+                </div>
+                
+                <button id="loginBtn" class="bg-blue-600 hover:bg-blue-500 text-white w-full py-3 rounded-xl font-bold transition shadow-lg mt-2">
+                    <i class="fas fa-sign-in-alt mr-2"></i> Entrar
+                </button>
+            </div>
+        </div>
     </div>
 
     <div id="toastContainer" class="fixed bottom-5 right-5 z-50 space-y-2"></div>
@@ -219,6 +255,10 @@ Aqui está a versão corrigida com a funcionalidade solicitada: no mobile, ao cl
 
         let checklistHistory = [];
 
+        // Sessão do usuário
+        let currentUser = null;
+        // Roles: 'admin' ou 'colaborador'
+
         function saveData() {
             localStorage.setItem("safeops_machines", JSON.stringify(machines));
             localStorage.setItem("safeops_employees", JSON.stringify(employees));
@@ -250,21 +290,19 @@ Aqui está a versão corrigida com a funcionalidade solicitada: no mobile, ao cl
             }`;
             const icon = type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-triangle' : 'fa-info-circle';
             toast.innerHTML = `<i class="fas ${icon} text-lg"></i><span>${message}</span>`;
-            container.appendChild(toast);
+            document.getElementById('toastContainer').appendChild(toast);
             setTimeout(() => toast.remove(), 3500);
         }
         
-        // Função para fechar o menu mobile (sidebar)
         function closeMobileMenu() {
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('mobileOverlay');
-            if(window.innerWidth < 768) { // Apenas no mobile
+            if(window.innerWidth < 768) {
                 sidebar.classList.remove('open');
                 overlay.classList.add('hidden');
             }
         }
         
-        // Função para abrir o menu mobile
         function openMobileMenu() {
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('mobileOverlay');
@@ -280,7 +318,6 @@ Aqui está a versão corrigida com a funcionalidade solicitada: no mobile, ao cl
             const overlay = document.getElementById('mobileOverlay');
             
             if(menuToggle) {
-                // Abrir menu ao clicar no botão hamburguer
                 menuToggle.addEventListener('click', (e) => {
                     e.stopPropagation();
                     if(sidebar.classList.contains('open')) {
@@ -290,15 +327,9 @@ Aqui está a versão corrigida com a funcionalidade solicitada: no mobile, ao cl
                     }
                 });
             }
-            
-            // Fechar ao clicar no overlay
             if(overlay) {
-                overlay.addEventListener('click', () => {
-                    closeMobileMenu();
-                });
+                overlay.addEventListener('click', () => closeMobileMenu());
             }
-            
-            // Fechar ao redimensionar para desktop (caso esteja aberto)
             window.addEventListener('resize', () => {
                 if(window.innerWidth >= 768) {
                     sidebar.classList.remove('open');
@@ -307,7 +338,6 @@ Aqui está a versão corrigida com a funcionalidade solicitada: no mobile, ao cl
             });
         }
         
-        // Função que envolve a navegação e fecha o menu no mobile
         function navigateWithMenuClose(navigationFn) {
             return () => {
                 navigationFn();
@@ -316,9 +346,80 @@ Aqui está a versão corrigida com a funcionalidade solicitada: no mobile, ao cl
         }
         
         // ================================
-        // 2. DASHBOARD
+        // 2. FUNÇÕES DE RENDERIZAÇÃO POR PERFIL
+        // ================================
+        
+        // Renderizar menu lateral baseado no perfil
+        function renderSidebarMenu() {
+            const navContainer = document.getElementById('mainNav');
+            const userInfoSpan = document.getElementById('userInfoDisplay');
+            const statusBadge = document.getElementById('statusBadge');
+            
+            if(!currentUser) return;
+            
+            if(currentUser.role === 'admin') {
+                navContainer.innerHTML = `
+                    <button id="navDashboard" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:bg-[#1a2035] hover:text-white transition-all group">
+                        <i class="fas fa-tachometer-alt w-5 text-indigo-400"></i>
+                        <span class="font-medium">Dashboard</span>
+                    </button>
+                    <button id="navMachines" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:bg-[#1a2035] hover:text-white transition-all group">
+                        <i class="fas fa-microchip w-5 text-blue-400"></i>
+                        <span class="font-medium">Máquinas & EPIs</span>
+                    </button>
+                    <button id="navEmployees" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:bg-[#1a2035] hover:text-white transition-all group">
+                        <i class="fas fa-users w-5 text-emerald-400"></i>
+                        <span class="font-medium">Colaboradores</span>
+                    </button>
+                    <div class="h-px bg-[#1e2a3e] my-3"></div>
+                    <button id="navChecklist" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:bg-[#1a2035] hover:text-white transition-all group">
+                        <i class="fas fa-clipboard-list w-5 text-cyan-400"></i>
+                        <span class="font-medium">Checklist + Selfie</span>
+                    </button>
+                    <button id="navHistory" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:bg-[#1a2035] hover:text-white transition-all group">
+                        <i class="fas fa-history w-5 text-purple-400"></i>
+                        <span class="font-medium">Histórico de Inspeções</span>
+                    </button>
+                `;
+                userInfoSpan.innerHTML = `<i class="fas fa-crown text-yellow-500 mr-1"></i> Admin: ${currentUser.name}`;
+                statusBadge.innerHTML = '<i class="fas fa-crown text-yellow-500 mr-1"></i> Modo Admin';
+            } else {
+                navContainer.innerHTML = `
+                    <button id="navChecklistColab" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:bg-[#1a2035] hover:text-white transition-all group">
+                        <i class="fas fa-clipboard-list w-5 text-cyan-400"></i>
+                        <span class="font-medium">Checklist de Segurança</span>
+                    </button>
+                    <button id="navHistoryColab" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:bg-[#1a2035] hover:text-white transition-all group">
+                        <i class="fas fa-history w-5 text-purple-400"></i>
+                        <span class="font-medium">Minhas Inspeções</span>
+                    </button>
+                `;
+                userInfoSpan.innerHTML = `<i class="fas fa-user text-blue-400 mr-1"></i> Colaborador: ${currentUser.name}`;
+                statusBadge.innerHTML = '<i class="fas fa-user text-blue-400 mr-1"></i> Modo Colaborador';
+            }
+            
+            // Atribuir eventos após renderizar
+            if(currentUser.role === 'admin') {
+                document.getElementById("navDashboard")?.addEventListener("click", navigateWithMenuClose(() => { stopCamera(); renderDashboard(); }));
+                document.getElementById("navMachines")?.addEventListener("click", navigateWithMenuClose(() => { stopCamera(); renderMachinesModule(); }));
+                document.getElementById("navEmployees")?.addEventListener("click", navigateWithMenuClose(() => { stopCamera(); renderEmployeesModule(); }));
+                document.getElementById("navChecklist")?.addEventListener("click", navigateWithMenuClose(() => { stopCamera(); renderChecklistModule(); }));
+                document.getElementById("navHistory")?.addEventListener("click", navigateWithMenuClose(() => { stopCamera(); renderHistoryModule(); }));
+            } else {
+                document.getElementById("navChecklistColab")?.addEventListener("click", navigateWithMenuClose(() => { stopCamera(); renderChecklistModule(); }));
+                document.getElementById("navHistoryColab")?.addEventListener("click", navigateWithMenuClose(() => { stopCamera(); renderHistoryModuleColab(); }));
+            }
+        }
+        
+        // ================================
+        // 3. DASHBOARD (APENAS ADMIN)
         // ================================
         function renderDashboard() {
+            if(currentUser?.role !== 'admin') {
+                renderChecklistModule();
+                return;
+            }
+            
             const totalMachines = machines.length;
             const totalEmployees = employees.length;
             const totalInspections = checklistHistory.length;
@@ -373,9 +474,15 @@ Aqui está a versão corrigida com a funcionalidade solicitada: no mobile, ao cl
         }
         
         // ================================
-        // 3. MÓDULO MÁQUINAS COM CHECKBOXES
+        // MÓDULOS ADMIN (Máquinas, Colaboradores)
         // ================================
         function renderMachinesModule() {
+            if(currentUser?.role !== 'admin') {
+                showToast("Acesso negado. Apenas administradores.", "error");
+                renderChecklistModule();
+                return;
+            }
+            
             const risksCheckboxes = RISKS_CATALOG.map(risk => `
                 <label class="flex items-center gap-2 p-2 rounded-lg hover:bg-[#1a2035] cursor-pointer transition">
                     <input type="checkbox" value="${risk}" class="risk-checkbox w-4 h-4 rounded border-gray-500 text-blue-500 focus:ring-blue-500">
@@ -396,125 +503,57 @@ Aqui está a versão corrigida com a funcionalidade solicitada: no mobile, ao cl
                         <div class="bg-blue-600/20 p-2 rounded-xl"><i class="fas fa-microchip text-blue-400 text-xl"></i></div>
                         <h2 class="text-xl font-bold text-white">Máquinas & EPIs</h2>
                     </div>
-                    
                     <div class="card-glass rounded-2xl p-6">
                         <h3 class="font-bold text-gray-200 flex items-center gap-2 mb-5"><i class="fas fa-plus-circle text-emerald-400"></i> Nova Máquina</h3>
-                        
                         <div class="space-y-5">
+                            <input type="text" id="machineName" placeholder="Nome da máquina" class="w-full p-3 bg-[#111827] border border-[#1f2a3e] rounded-xl text-white">
                             <div>
-                                <label class="block text-gray-300 font-medium mb-2">Nome da máquina</label>
-                                <input type="text" id="machineName" placeholder="Ex: Prensa Hidráulica, Serra Fita, Esteira..." 
-                                    class="w-full p-3 bg-[#111827] border border-[#1f2a3e] rounded-xl text-white placeholder-gray-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
-                            </div>
-                            
-                            <div>
-                                <label class="block text-gray-300 font-medium mb-2">Riscos associados</label>
+                                <label class="block text-gray-300 font-medium mb-2">Riscos</label>
                                 <div class="bg-[#111827] border border-[#1f2a3e] rounded-xl p-3">
-                                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-1 checkbox-group" style="max-height: 240px; overflow-y: auto;">
-                                        ${risksCheckboxes}
-                                    </div>
+                                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-1 checkbox-group" style="max-height: 240px; overflow-y: auto;">${risksCheckboxes}</div>
                                 </div>
-                                <p class="text-xs text-gray-500 mt-1">Selecione todos os riscos aplicáveis</p>
                             </div>
-                            
                             <div>
                                 <label class="block text-gray-300 font-medium mb-2">EPIs obrigatórios</label>
                                 <div class="bg-[#111827] border border-[#1f2a3e] rounded-xl p-3">
-                                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-1 checkbox-group" style="max-height: 240px; overflow-y: auto;">
-                                        ${episCheckboxes}
-                                    </div>
+                                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-1 checkbox-group" style="max-height: 240px; overflow-y: auto;">${episCheckboxes}</div>
                                 </div>
-                                <p class="text-xs text-gray-500 mt-1">Selecione os EPIs necessários para operar esta máquina</p>
                             </div>
-                            
-                            <button id="addMachineBtn" class="bg-blue-600 hover:bg-blue-500 text-white w-full py-3 rounded-xl font-bold transition shadow-lg">
-                                <i class="fas fa-save mr-2"></i> Registrar Máquina
-                            </button>
+                            <button id="addMachineBtn" class="bg-blue-600 hover:bg-blue-500 text-white w-full py-3 rounded-xl font-bold"><i class="fas fa-save mr-2"></i> Registrar</button>
                         </div>
                     </div>
-                    
-                    <div>
-                        <h3 class="font-bold text-gray-300 mb-3 flex items-center gap-2"><i class="fas fa-list-ul text-blue-400"></i> Máquinas Cadastradas (${machines.length})</h3>
-                        <div id="machineListContainer" class="space-y-3">
-                            ${machines.map(machine => `
-                                <div class="card-glass rounded-xl p-4 hover:border-blue-500/30 transition">
-                                    <div class="flex flex-col md:flex-row justify-between gap-4">
-                                        <div class="flex-1">
-                                            <div class="flex flex-wrap items-center gap-2 mb-2">
-                                                <span class="font-bold text-white text-lg">${escapeHtml(machine.name)}</span>
-                                                <span class="text-xs bg-[#1f2a3e] px-2 py-0.5 rounded-full text-gray-300 font-mono">${machine.id}</span>
-                                            </div>
-                                            <div class="flex flex-wrap gap-1 mb-2">
-                                                ${machine.risks.map(r => `<span class="bg-red-900/40 text-red-300 text-xs px-2 py-1 rounded-full"><i class="fas fa-exclamation-triangle text-[10px] mr-1"></i>${r}</span>`).join('')}
-                                            </div>
-                                            <div class="text-xs text-gray-400"><i class="fas fa-helmet-safety text-emerald-400 mr-1"></i> EPIs: ${machine.requiredEpis.join(', ')}</div>
-                                        </div>
-                                        <div class="flex flex-col items-center gap-2">
-                                            <div id="qr-${machine.id}" class="qr-container bg-gray-900 p-2 rounded-xl"></div>
-                                            <button class="deleteMachineBtn text-red-400 hover:text-red-300 text-sm transition" data-id="${machine.id}">
-                                                <i class="fas fa-trash-alt mr-1"></i> Excluir
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            `).join('')}
-                            ${machines.length === 0 ? '<div class="text-gray-500 text-center p-6 bg-[#111827] rounded-xl">Nenhuma máquina cadastrada. Crie a primeira!</div>' : ''}
-                        </div>
+                    <div id="machineListContainer" class="space-y-3">
+                        ${machines.map(m => `<div class="card-glass rounded-xl p-4 flex justify-between items-start"><div><span class="font-bold text-white">${m.name}</span><div class="text-xs text-gray-400 mt-1">EPIs: ${m.requiredEpis.join(', ')}</div></div><div id="qr-${m.id}" class="qr-container"></div></div>`).join('')}
                     </div>
                 </div>
             `;
             document.getElementById("dynamicPanel").innerHTML = html;
             
-            machines.forEach(machine => {
-                const container = document.getElementById(`qr-${machine.id}`);
+            machines.forEach(m => {
+                const container = document.getElementById(`qr-${m.id}`);
                 if(container && !container.hasChildNodes()) {
-                    new QRCode(container, { 
-                        text: generateQRCodeUrl(machine.id), 
-                        width: 80, 
-                        height: 80, 
-                        colorDark: "#1e1e2f", 
-                        colorLight: "#ffffff" 
-                    });
+                    new QRCode(container, { text: generateQRCodeUrl(m.id), width: 70, height: 70, colorDark: "#1e1e2f", colorLight: "#ffffff" });
                 }
             });
             
             document.getElementById("addMachineBtn")?.addEventListener("click", () => {
                 const name = document.getElementById("machineName").value.trim();
-                const selectedRisks = Array.from(document.querySelectorAll(".risk-checkbox:checked")).map(cb => cb.value);
-                const selectedEpis = Array.from(document.querySelectorAll(".epi-checkbox:checked")).map(cb => cb.value);
-                
-                if(!name) return showToast("Informe o nome da máquina", "error");
-                if(selectedRisks.length === 0) return showToast("Selecione ao menos um risco", "error");
-                if(selectedEpis.length === 0) return showToast("Selecione ao menos um EPI obrigatório", "error");
-                
-                const newId = `MACH-${String(machines.length+1).padStart(3,'0')}`;
-                machines.push({ 
-                    id: newId, 
-                    name: name, 
-                    risks: selectedRisks, 
-                    requiredEpis: selectedEpis 
-                });
+                const risks = Array.from(document.querySelectorAll(".risk-checkbox:checked")).map(cb => cb.value);
+                const epis = Array.from(document.querySelectorAll(".epi-checkbox:checked")).map(cb => cb.value);
+                if(!name || !risks.length || !epis.length) return showToast("Preencha todos os campos", "error");
+                machines.push({ id: `MACH-${String(machines.length+1).padStart(3,'0')}`, name, risks, requiredEpis: epis });
                 saveData();
                 renderMachinesModule();
-                showToast(`Máquina "${name}" cadastrada com sucesso!`, "success");
-            });
-            
-            document.querySelectorAll(".deleteMachineBtn").forEach(btn => {
-                btn.addEventListener("click", (e) => {
-                    const id = btn.dataset.id;
-                    const machineName = machines.find(m => m.id === id)?.name;
-                    machines = machines.filter(m => m.id !== id);
-                    saveData();
-                    renderMachinesModule();
-                    showToast(`Máquina "${machineName}" removida`, "success");
-                });
+                showToast("Máquina cadastrada!", "success");
             });
         }
         
-        // ================================
-        // 4. MÓDULO COLABORADORES
-        // ================================
         function renderEmployeesModule() {
+            if(currentUser?.role !== 'admin') {
+                showToast("Acesso negado.", "error");
+                renderChecklistModule();
+                return;
+            }
             const html = `
                 <div class="space-y-6">
                     <div class="flex items-center gap-3 border-b border-[#1e2a3e] pb-3">
@@ -522,232 +561,132 @@ Aqui está a versão corrigida com a funcionalidade solicitada: no mobile, ao cl
                         <h2 class="text-xl font-bold text-white">Colaboradores</h2>
                     </div>
                     <div class="card-glass rounded-2xl p-6">
-                        <h3 class="font-bold text-gray-200 mb-4"><i class="fas fa-user-plus text-emerald-400 mr-2"></i> Adicionar Funcionário</h3>
-                        <div class="space-y-4">
-                            <input type="text" id="empName" placeholder="Nome completo" class="w-full p-3 bg-[#111827] border border-[#1f2a3e] rounded-xl text-white placeholder-gray-500">
-                            <input type="text" id="empRole" placeholder="Cargo (Ex: Operador, Técnico, Supervisor)" class="w-full p-3 bg-[#111827] border border-[#1f2a3e] rounded-xl text-white placeholder-gray-500">
-                            <select id="empShift" class="w-full p-3 bg-[#111827] border border-[#1f2a3e] rounded-xl text-white">
-                                <option value="Matutino">Matutino (06:00 - 14:00)</option>
-                                <option value="Vespertino">Vespertino (14:00 - 22:00)</option>
-                                <option value="Noturno">Noturno (22:00 - 06:00)</option>
-                                <option value="Administrativo">Administrativo</option>
-                            </select>
-                            <button id="addEmployeeBtn" class="bg-emerald-600 hover:bg-emerald-500 text-white w-full py-3 rounded-xl font-bold transition">
-                                <i class="fas fa-user-check mr-2"></i> Cadastrar Funcionário
-                            </button>
-                        </div>
+                        <input type="text" id="empName" placeholder="Nome" class="w-full p-3 bg-[#111827] border rounded-xl text-white mb-3">
+                        <input type="text" id="empRole" placeholder="Cargo" class="w-full p-3 bg-[#111827] border rounded-xl text-white mb-3">
+                        <button id="addEmployeeBtn" class="bg-emerald-600 w-full py-3 rounded-xl font-bold">Cadastrar</button>
                     </div>
-                    <div class="space-y-2">
-                        <h3 class="font-bold text-gray-300 mb-3">Funcionários Ativos</h3>
-                        ${employees.map(emp => `
-                            <div class="bg-[#111827] border border-[#1f2a3e] rounded-xl p-3 flex justify-between items-center hover:bg-[#161e2e] transition">
-                                <div>
-                                    <p class="font-semibold text-white">${escapeHtml(emp.name)}</p>
-                                    <p class="text-xs text-gray-400">${emp.role} • ${emp.shift} • ID: ${emp.id}</p>
-                                </div>
-                                <button class="deleteEmployeeBtn text-red-400 hover:text-red-300 transition px-3 py-1 rounded-lg" data-id="${emp.id}">
-                                    <i class="fas fa-trash-alt"></i>
-                                </button>
-                            </div>
-                        `).join('')}
-                        ${employees.length === 0 ? '<div class="text-gray-500 text-center p-6 bg-[#111827] rounded-xl">Nenhum colaborador cadastrado</div>' : ''}
-                    </div>
+                    ${employees.map(emp => `<div class="bg-[#111827] rounded-xl p-3 flex justify-between"><span class="text-white">${emp.name} - ${emp.role}</span><button class="deleteEmployeeBtn text-red-400" data-id="${emp.id}">❌</button></div>`).join('')}
                 </div>
             `;
             document.getElementById("dynamicPanel").innerHTML = html;
-            
             document.getElementById("addEmployeeBtn")?.addEventListener("click", () => {
                 const name = document.getElementById("empName").value.trim();
                 const role = document.getElementById("empRole").value.trim();
-                const shift = document.getElementById("empShift").value;
-                if(!name || !role) return showToast("Preencha nome e cargo", "error");
-                const newId = `FUNC-${String(employees.length + 100).slice(-3)}`;
-                employees.push({ id: newId, name, role, shift, sector: "Operações" });
+                if(!name || !role) return showToast("Preencha os campos", "error");
+                employees.push({ id: `FUNC-${String(employees.length+100).slice(-3)}`, name, role, shift: "Matutino", sector: "Operações" });
                 saveData();
                 renderEmployeesModule();
-                showToast(`Funcionário ${name} cadastrado com sucesso!`, "success");
+                showToast("Funcionário cadastrado!", "success");
             });
-            
             document.querySelectorAll(".deleteEmployeeBtn").forEach(btn => {
                 btn.addEventListener("click", () => {
-                    const id = btn.dataset.id;
-                    const empName = employees.find(e => e.id === id)?.name;
-                    employees = employees.filter(e => e.id !== id);
+                    employees = employees.filter(e => e.id !== btn.dataset.id);
                     saveData();
                     renderEmployeesModule();
-                    showToast(`Funcionário ${empName} removido`, "success");
                 });
             });
         }
         
         // ================================
-        // 5. CHECKLIST COM CÂMERA E SELFIE
+        // 4. CHECKLIST COM CÂMERA (ACESSO PARA AMBOS)
         // ================================
         let currentStream = null;
         let currentFacingMode = "environment";
         let countdownInterval = null;
         
         async function initCamera(previewElement, facingMode) {
-            if(currentStream) {
-                currentStream.getTracks().forEach(track => track.stop());
-            }
+            if(currentStream) currentStream.getTracks().forEach(track => track.stop());
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: facingMode } } });
                 previewElement.srcObject = stream;
                 currentStream = stream;
                 return true;
-            } catch (err) {
-                try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facingMode } });
-                    previewElement.srcObject = stream;
-                    currentStream = stream;
-                    return true;
-                } catch (e) {
-                    return false;
-                }
-            }
+            } catch { return false; }
         }
         
         function stopCamera() {
-            if(currentStream) {
-                currentStream.getTracks().forEach(track => track.stop());
-                currentStream = null;
-            }
+            if(currentStream) { currentStream.getTracks().forEach(track => track.stop()); currentStream = null; }
         }
         
         function renderChecklistModule() {
             if(machines.length === 0) {
-                document.getElementById("dynamicPanel").innerHTML = `<div class="card-glass rounded-2xl p-8 text-center"><i class="fas fa-exclamation-triangle text-yellow-400 text-4xl"></i><p class="text-white mt-2">Nenhuma máquina cadastrada</p><button id="goMachines" class="mt-4 bg-blue-600 px-5 py-2 rounded-xl">Cadastrar Máquina</button></div>`;
-                document.getElementById("goMachines")?.addEventListener("click", () => renderMachinesModule());
+                document.getElementById("dynamicPanel").innerHTML = `<div class="card-glass p-8 text-center"><p class="text-white">Nenhuma máquina cadastrada. Aguarde o administrador.</p></div>`;
                 return;
             }
             
-            const machineSelect = `<select id="checklistMachineSelect" class="w-full p-3 bg-[#111827] border border-[#1f2a3e] rounded-xl text-white mb-4">${machines.map(m => `<option value="${m.id}">${m.name} (${m.id})</option>`).join('')}</select>`;
-            
+            const machineSelect = `<select id="checklistMachineSelect" class="w-full p-3 bg-[#111827] border rounded-xl text-white mb-4">${machines.map(m => `<option value="${m.id}">${m.name}</option>`).join('')}</select>`;
             const html = `
                 <div class="max-w-4xl mx-auto space-y-6">
-                    <div class="flex items-center gap-3 border-b border-[#1e2a3e] pb-3">
-                        <div class="bg-cyan-600/20 p-2 rounded-xl"><i class="fas fa-camera text-cyan-400 text-xl"></i></div>
-                        <h2 class="text-xl font-bold text-white">Checklist com Selfie Comprobatória</h2>
-                    </div>
                     <div class="card-glass rounded-2xl p-6">
-                        <label class="block text-gray-300 mb-2">Selecione a Máquina:</label>
+                        <h2 class="text-xl font-bold text-white mb-4">Checklist de Segurança</h2>
                         ${machineSelect}
-                        <div id="epiCheckArea" class="mt-4"></div>
-                        <div id="statusMessage" class="mt-4 p-3 rounded-xl text-center bg-gray-800/50 text-gray-300"></div>
+                        <div id="epiCheckArea"></div>
+                        <div id="statusMessage" class="mt-4 p-3 rounded-xl text-center"></div>
                     </div>
                     <div id="cameraSection" class="card-glass rounded-2xl p-6 hidden">
-                        <h3 class="font-bold text-white mb-3"><i class="fas fa-video text-purple-400 mr-2"></i> Selfie Comprobatória</h3>
-                        <div class="flex gap-2 mb-4">
-                            <button id="switchCameraBtn" class="flex-1 bg-purple-600/30 hover:bg-purple-600/50 text-purple-300 py-2 rounded-xl"><i class="fas fa-sync-alt mr-2"></i> Alternar Câmera</button>
-                        </div>
                         <div class="relative bg-black rounded-xl overflow-hidden aspect-video">
                             <video id="videoPreview" class="w-full h-full object-cover video-preview" autoplay playsinline muted></video>
-                            <div id="countdownOverlay" class="absolute inset-0 flex items-center justify-center bg-black/70 hidden">
-                                <span id="countdownNumber" class="text-8xl font-bold text-white">3</span>
-                            </div>
+                            <div id="countdownOverlay" class="absolute inset-0 flex items-center justify-center bg-black/70 hidden"><span id="countdownNumber" class="text-8xl font-bold text-white">3</span></div>
                         </div>
                         <div class="flex gap-2 mt-4">
-                            <button id="takePhotoBtn" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-xl font-bold"><i class="fas fa-camera mr-2"></i> Tirar Selfie (3s)</button>
-                            <button id="uploadFallbackBtn" class="flex-1 bg-gray-600 hover:bg-gray-500 text-white py-3 rounded-xl"><i class="fas fa-upload mr-2"></i> Upload</button>
+                            <button id="switchCameraBtn" class="flex-1 bg-purple-600/30 text-purple-300 py-2 rounded-xl"><i class="fas fa-sync-alt mr-2"></i> Alternar</button>
+                            <button id="takePhotoBtn" class="flex-1 bg-emerald-600 text-white py-2 rounded-xl"><i class="fas fa-camera mr-2"></i> Selfie (3s)</button>
+                            <button id="uploadFallbackBtn" class="flex-1 bg-gray-600 text-white py-2 rounded-xl"><i class="fas fa-upload"></i></button>
                         </div>
-                        <div id="selfiePreviewArea" class="mt-4 hidden">
-                            <div class="relative rounded-xl overflow-hidden border-2 border-emerald-500">
-                                <img id="capturedSelfie" class="w-full max-h-48 object-cover" alt="Selfie">
-                                <button id="removeSelfieBtnCam" class="absolute top-2 right-2 bg-red-600 p-1.5 rounded-full"><i class="fas fa-times text-white text-xs"></i></button>
-                            </div>
-                        </div>
-                        <button id="finalizeChecklistBtn" class="mt-4 w-full bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-xl font-bold disabled:opacity-50" disabled>
-                            <i class="fas fa-check-double mr-2"></i> Finalizar Checklist
-                        </button>
+                        <div id="selfiePreviewArea" class="mt-4 hidden"><img id="capturedSelfie" class="w-full rounded-xl border-2 border-emerald-500"><button id="removeSelfieBtnCam" class="mt-2 w-full bg-red-600 py-1 rounded">Remover</button></div>
+                        <button id="finalizeChecklistBtn" class="mt-4 w-full bg-emerald-600 py-3 rounded-xl font-bold disabled:opacity-50" disabled>Finalizar Checklist</button>
                     </div>
                 </div>
             `;
             document.getElementById("dynamicPanel").innerHTML = html;
             
-            let currentMachine = null;
-            let allEpisChecked = false;
-            let capturedSelfieData = null;
-            let videoPreview = document.getElementById("videoPreview");
+            let currentMachine = null, allEpisChecked = false, capturedSelfieData = null;
+            const videoPreview = document.getElementById("videoPreview");
             
-            function loadEpisForMachine() {
-                const select = document.getElementById("checklistMachineSelect");
-                currentMachine = machines.find(m => m.id === select.value);
+            function loadEpis() {
+                currentMachine = machines.find(m => m.id === document.getElementById("checklistMachineSelect").value);
                 if(!currentMachine) return;
-                
-                const epiHtml = `
-                    <label class="block text-gray-300 mb-2 font-bold">EPIs Obrigatórios para ${currentMachine.name}:</label>
-                    <div class="space-y-2">
-                        ${currentMachine.requiredEpis.map(epi => `
-                            <label class="flex items-center gap-3 p-3 bg-[#111827] rounded-xl cursor-pointer hover:bg-[#1a2035] transition">
-                                <input type="checkbox" data-epi="${epi}" class="check-epi w-5 h-5 text-green-500 rounded">
-                                <span class="text-gray-200">${escapeHtml(epi)}</span>
-                            </label>
-                        `).join('')}
-                    </div>
-                `;
-                document.getElementById("epiCheckArea").innerHTML = epiHtml;
-                
+                document.getElementById("epiCheckArea").innerHTML = `<div class="space-y-2">${currentMachine.requiredEpis.map(epi => `<label class="flex items-center gap-3 p-3 bg-[#111827] rounded-xl cursor-pointer"><input type="checkbox" data-epi="${epi}" class="check-epi w-5 h-5"><span class="text-gray-200">${epi}</span></label>`).join('')}</div>`;
                 const checkboxes = document.querySelectorAll(".check-epi");
-                const statusDiv = document.getElementById("statusMessage");
-                const cameraSection = document.getElementById("cameraSection");
-                
-                function updateEpiStatus() {
-                    allEpisChecked = Array.from(checkboxes).every(cb => cb.checked) && checkboxes.length > 0;
+                const update = () => {
+                    allEpisChecked = Array.from(checkboxes).every(cb => cb.checked);
+                    const statusDiv = document.getElementById("statusMessage");
                     if(allEpisChecked) {
-                        statusDiv.innerHTML = '<i class="fas fa-check-circle mr-2"></i> CONFORME - Todos os EPIs marcados!';
-                        statusDiv.className = "mt-4 p-3 rounded-xl text-center font-bold bg-emerald-900/60 text-emerald-200 border border-emerald-500";
-                        cameraSection.classList.remove("hidden");
+                        statusDiv.innerHTML = '✅ CONFORME - Todos os EPIs marcados!';
+                        statusDiv.className = "mt-4 p-3 rounded-xl text-center font-bold bg-emerald-900/60 text-emerald-200";
+                        document.getElementById("cameraSection").classList.remove("hidden");
                     } else {
-                        statusDiv.innerHTML = `<i class="fas fa-times-circle mr-2"></i> NÃO CONFORME - Marque todos os EPIs.`;
-                        statusDiv.className = "mt-4 p-3 rounded-xl text-center font-bold bg-red-900/60 text-red-200 border border-red-500";
-                        cameraSection.classList.add("hidden");
-                        capturedSelfieData = null;
-                        document.getElementById("selfiePreviewArea")?.classList.add("hidden");
+                        statusDiv.innerHTML = '❌ NÃO CONFORME - Marque todos os EPIs.';
+                        statusDiv.className = "mt-4 p-3 rounded-xl text-center font-bold bg-red-900/60 text-red-200";
+                        document.getElementById("cameraSection").classList.add("hidden");
                         document.getElementById("finalizeChecklistBtn").disabled = true;
                     }
-                }
-                checkboxes.forEach(cb => cb.addEventListener("change", updateEpiStatus));
-                updateEpiStatus();
+                };
+                checkboxes.forEach(cb => cb.addEventListener("change", update));
+                update();
             }
             
-            document.getElementById("checklistMachineSelect")?.addEventListener("change", loadEpisForMachine);
-            loadEpisForMachine();
+            document.getElementById("checklistMachineSelect")?.addEventListener("change", loadEpis);
+            loadEpis();
             
-            async function startCamera() {
-                const success = await initCamera(videoPreview, currentFacingMode);
-                if(!success) {
-                    showToast("Câmera não disponível. Use o botão Upload", "warning");
-                    document.getElementById("takePhotoBtn").disabled = true;
-                }
-            }
-            
-            document.getElementById("switchCameraBtn")?.addEventListener("click", async () => {
-                currentFacingMode = currentFacingMode === "environment" ? "user" : "environment";
-                await startCamera();
-                showToast(`Câmera ${currentFacingMode === "environment" ? "traseira" : "frontal"} ativada`, "info");
-            });
+            async function startCamera() { await initCamera(videoPreview, currentFacingMode); }
+            document.getElementById("switchCameraBtn")?.addEventListener("click", async () => { currentFacingMode = currentFacingMode === "environment" ? "user" : "environment"; await startCamera(); });
             
             function startCountdown() {
                 let count = 3;
                 const overlay = document.getElementById("countdownOverlay");
-                const numberSpan = document.getElementById("countdownNumber");
+                const span = document.getElementById("countdownNumber");
                 overlay.classList.remove("hidden");
-                numberSpan.textContent = count;
+                span.textContent = count;
                 if(countdownInterval) clearInterval(countdownInterval);
                 countdownInterval = setInterval(() => {
                     count--;
-                    if(count >= 0) numberSpan.textContent = count;
-                    if(count < 0) {
-                        clearInterval(countdownInterval);
-                        overlay.classList.add("hidden");
-                        capturePhoto();
-                    }
+                    if(count >= 0) span.textContent = count;
+                    if(count < 0) { clearInterval(countdownInterval); overlay.classList.add("hidden"); capturePhoto(); }
                 }, 1000);
             }
             
             function capturePhoto() {
-                if(!videoPreview.videoWidth) return showToast("Câmera não está pronta", "error");
                 const canvas = document.createElement("canvas");
                 canvas.width = videoPreview.videoWidth;
                 canvas.height = videoPreview.videoHeight;
@@ -759,109 +698,99 @@ Aqui está a versão corrigida com a funcionalidade solicitada: no mobile, ao cl
                 showToast("Selfie capturada!", "success");
             }
             
-            document.getElementById("takePhotoBtn")?.addEventListener("click", () => {
-                if(allEpisChecked) startCountdown();
-                else showToast("Marque todos os EPIs primeiro", "error");
-            });
-            
+            document.getElementById("takePhotoBtn")?.addEventListener("click", () => { if(allEpisChecked) startCountdown(); else showToast("Marque todos os EPIs", "error"); });
             document.getElementById("uploadFallbackBtn")?.addEventListener("click", () => {
-                if(!allEpisChecked) return showToast("Marque todos os EPIs primeiro", "error");
+                if(!allEpisChecked) return showToast("Marque os EPIs primeiro", "error");
                 const input = document.createElement("input");
                 input.type = "file";
                 input.accept = "image/*";
                 input.onchange = (e) => {
                     const file = e.target.files[0];
-                    if(file) {
-                        const reader = new FileReader();
-                        reader.onload = (ev) => {
-                            capturedSelfieData = ev.target.result;
-                            document.getElementById("capturedSelfie").src = capturedSelfieData;
-                            document.getElementById("selfiePreviewArea").classList.remove("hidden");
-                            document.getElementById("finalizeChecklistBtn").disabled = false;
-                            showToast("Foto enviada!", "success");
-                        };
-                        reader.readAsDataURL(file);
-                    }
+                    if(file) { const reader = new FileReader(); reader.onload = (ev) => { capturedSelfieData = ev.target.result; document.getElementById("capturedSelfie").src = capturedSelfieData; document.getElementById("selfiePreviewArea").classList.remove("hidden"); document.getElementById("finalizeChecklistBtn").disabled = false; }; reader.readAsDataURL(file); }
                 };
                 input.click();
             });
-            
-            document.getElementById("removeSelfieBtnCam")?.addEventListener("click", () => {
-                capturedSelfieData = null;
-                document.getElementById("selfiePreviewArea").classList.add("hidden");
-                document.getElementById("finalizeChecklistBtn").disabled = true;
-            });
-            
+            document.getElementById("removeSelfieBtnCam")?.addEventListener("click", () => { capturedSelfieData = null; document.getElementById("selfiePreviewArea").classList.add("hidden"); document.getElementById("finalizeChecklistBtn").disabled = true; });
             document.getElementById("finalizeChecklistBtn")?.addEventListener("click", () => {
                 if(allEpisChecked && capturedSelfieData && currentMachine) {
-                    checklistHistory.push({
-                        machineId: currentMachine.id,
-                        machineName: currentMachine.name,
-                        timestamp: new Date().toISOString(),
-                        selfie: capturedSelfieData,
-                        episUsed: currentMachine.requiredEpis
-                    });
+                    checklistHistory.push({ machineId: currentMachine.id, machineName: currentMachine.name, timestamp: new Date().toISOString(), selfie: capturedSelfieData, episUsed: currentMachine.requiredEpis, userName: currentUser?.name });
                     saveData();
-                    showToast("Checklist finalizado! Selfie registrada.", "success");
+                    showToast("Checklist finalizado!", "success");
                     stopCamera();
-                    setTimeout(() => renderChecklistModule(), 2000);
+                    setTimeout(() => renderChecklistModule(), 1500);
                 }
             });
-            
             startCamera();
         }
         
         function renderHistoryModule() {
-            const html = `
-                <div class="space-y-6">
-                    <div class="flex items-center gap-3 border-b border-[#1e2a3e] pb-3">
-                        <div class="bg-purple-600/20 p-2 rounded-xl"><i class="fas fa-history text-purple-400 text-xl"></i></div>
-                        <h2 class="text-xl font-bold text-white">Histórico de Inspeções</h2>
-                    </div>
-                    <div class="card-glass rounded-2xl p-5">
-                        ${checklistHistory.length === 0 ? '<p class="text-gray-400 text-center py-8">Nenhuma inspeção realizada ainda</p>' : 
-                            [...checklistHistory].reverse().map((item) => `
-                                <div class="border-b border-[#1e2a3e] py-4">
-                                    <div class="flex justify-between items-start gap-3">
-                                        <div class="flex-1">
-                                            <p class="text-white font-bold">${item.machineName}</p>
-                                            <p class="text-gray-400 text-sm">${new Date(item.timestamp).toLocaleString('pt-BR')}</p>
-                                            <p class="text-xs text-emerald-400 mt-1"><i class="fas fa-check-circle"></i> EPIs: ${item.episUsed.join(', ')}</p>
-                                        </div>
-                                        <img src="${item.selfie}" class="w-16 h-16 rounded-lg object-cover border border-emerald-500" alt="Selfie">
-                                    </div>
-                                </div>
-                            `).join('')
-                        }
-                    </div>
-                </div>
-            `;
+            const userHistory = currentUser?.role === 'admin' ? checklistHistory : checklistHistory.filter(h => h.userName === currentUser?.name);
+            const html = `<div class="card-glass rounded-2xl p-6"><h2 class="text-xl font-bold text-white mb-4">${currentUser?.role === 'admin' ? 'Todas as Inspeções' : 'Minhas Inspeções'}</h2>${userHistory.length === 0 ? '<p class="text-gray-400">Nenhuma inspeção encontrada</p>' : userHistory.reverse().map(item => `<div class="border-b border-[#1e2a3e] py-3"><p class="text-white">${item.machineName}</p><p class="text-gray-400 text-xs">${new Date(item.timestamp).toLocaleString()}</p><img src="${item.selfie}" class="w-16 h-16 rounded mt-2"></div>`).join('')}</div>`;
             document.getElementById("dynamicPanel").innerHTML = html;
         }
         
-        function handleRoute() {
-            const params = new URLSearchParams(window.location.search);
-            const machineId = params.get("checklist");
-            if(machineId && machines.find(m => m.id === machineId)) {
-                renderChecklistModule();
+        function renderHistoryModuleColab() { renderHistoryModule(); }
+        
+        // ================================
+        // 5. LOGIN E AUTENTICAÇÃO
+        // ================================
+        const users = {
+            admin: { username: "admin", password: "admin123", name: "Administrador", role: "admin" },
+            colaborador: { username: "colab", password: "colab123", name: "Colaborador", role: "colaborador" }
+        };
+        
+        function performLogin(username, password) {
+            if(username === users.admin.username && password === users.admin.password) {
+                currentUser = { ...users.admin };
+                return true;
+            } else if(username === users.colaborador.username && password === users.colaborador.password) {
+                currentUser = { ...users.colaborador };
                 return true;
             }
             return false;
         }
         
-        function init() {
-            initMobileMenu();
-            if(!handleRoute()) renderDashboard();
-            
-            // Configurar navegação com fechamento automático do menu no mobile
-            document.getElementById("navDashboard")?.addEventListener("click", navigateWithMenuClose(() => { stopCamera(); renderDashboard(); }));
-            document.getElementById("navMachines")?.addEventListener("click", navigateWithMenuClose(() => { stopCamera(); renderMachinesModule(); }));
-            document.getElementById("navEmployees")?.addEventListener("click", navigateWithMenuClose(() => { stopCamera(); renderEmployeesModule(); }));
-            document.getElementById("navChecklist")?.addEventListener("click", navigateWithMenuClose(() => { stopCamera(); renderChecklistModule(); }));
-            document.getElementById("navHistory")?.addEventListener("click", navigateWithMenuClose(() => { stopCamera(); renderHistoryModule(); }));
+        function logout() {
+            currentUser = null;
+            stopCamera();
+            document.getElementById('loginModal').classList.remove('hidden');
+            document.getElementById('sidebar').classList.remove('open');
         }
         
-        function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[m])); }
+        function afterLogin() {
+            document.getElementById('loginModal').classList.add('hidden');
+            renderSidebarMenu();
+            renderChecklistModule();
+            showToast(`Bem-vindo, ${currentUser.name}!`, "success");
+        }
+        
+        function initAuth() {
+            const loginBtn = document.getElementById('loginBtn');
+            const logoutBtn = document.getElementById('logoutBtn');
+            const loginUser = document.getElementById('loginUser');
+            const loginPass = document.getElementById('loginPass');
+            
+            loginBtn.addEventListener('click', () => {
+                const user = loginUser.value.trim();
+                const pass = loginPass.value.trim();
+                if(performLogin(user, pass)) {
+                    afterLogin();
+                } else {
+                    showToast("Usuário ou senha inválidos!", "error");
+                }
+            });
+            
+            loginUser.addEventListener('keypress', (e) => { if(e.key === 'Enter') loginBtn.click(); });
+            loginPass.addEventListener('keypress', (e) => { if(e.key === 'Enter') loginBtn.click(); });
+            
+            logoutBtn.addEventListener('click', () => { logout(); });
+        }
+        
+        function init() {
+            initMobileMenu();
+            initAuth();
+        }
+        
         init();
     </script>
 </body>
