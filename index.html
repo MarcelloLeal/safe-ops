@@ -1,4 +1,4 @@
-Aqui está a versão corrigida com o menu "Máquinas & EPIs" reformulado, substituindo os selects com barra de rolagem por múltiplos checkboxes organizados em grid.
+Aqui está a versão corrigida com a funcionalidade solicitada: no mobile, ao clicar em qualquer item do menu lateral, o menu é automaticamente recolhido para a esquerda.
 ```html
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -96,11 +96,24 @@ Aqui está a versão corrigida com o menu "Máquinas & EPIs" reformulado, substi
         .checkbox-group::-webkit-scrollbar {
             width: 4px;
         }
+        /* Garantir que o overlay cubra todo o conteúdo */
+        #mobileOverlay {
+            transition: opacity 0.3s ease;
+        }
+        #mobileOverlay.hidden {
+            opacity: 0;
+            visibility: hidden;
+        }
+        #mobileOverlay:not(.hidden) {
+            opacity: 1;
+            visibility: visible;
+        }
     </style>
 </head>
 <body class="bg-[#0a0f1a] font-sans antialiased">
 
-    <div id="mobileOverlay" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 hidden md:hidden"></div>
+    <!-- Mobile Overlay (fundo escuro quando menu aberto) -->
+    <div id="mobileOverlay" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 hidden md:hidden transition-all duration-300"></div>
 
     <div class="flex min-h-screen">
         <!-- MENU LATERAL SAAS -->
@@ -151,7 +164,7 @@ Aqui está a versão corrigida com o menu "Máquinas & EPIs" reformulado, substi
         <!-- CONTEÚDO PRINCIPAL -->
         <main class="flex-1 min-h-screen">
             <div class="sticky top-0 z-30 bg-[#0d1222]/90 backdrop-blur-md border-b border-[#1e2a3e] px-4 py-3 flex items-center justify-between">
-                <button id="menuToggle" class="md:hidden text-gray-300 hover:text-white text-2xl p-2 rounded-lg hover:bg-[#1a2035]">
+                <button id="menuToggle" class="md:hidden text-gray-300 hover:text-white text-2xl p-2 rounded-lg hover:bg-[#1a2035] transition">
                     <i class="fas fa-bars"></i>
                 </button>
                 <div class="flex items-center gap-3 ml-auto">
@@ -241,20 +254,65 @@ Aqui está a versão corrigida com o menu "Máquinas & EPIs" reformulado, substi
             setTimeout(() => toast.remove(), 3500);
         }
         
+        // Função para fechar o menu mobile (sidebar)
+        function closeMobileMenu() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('mobileOverlay');
+            if(window.innerWidth < 768) { // Apenas no mobile
+                sidebar.classList.remove('open');
+                overlay.classList.add('hidden');
+            }
+        }
+        
+        // Função para abrir o menu mobile
+        function openMobileMenu() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('mobileOverlay');
+            if(window.innerWidth < 768) {
+                sidebar.classList.add('open');
+                overlay.classList.remove('hidden');
+            }
+        }
+        
         function initMobileMenu() {
             const menuToggle = document.getElementById('menuToggle');
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('mobileOverlay');
+            
             if(menuToggle) {
-                menuToggle.addEventListener('click', () => {
-                    sidebar.classList.toggle('open');
-                    overlay.classList.toggle('hidden');
-                });
-                overlay.addEventListener('click', () => {
-                    sidebar.classList.remove('open');
-                    overlay.classList.add('hidden');
+                // Abrir menu ao clicar no botão hamburguer
+                menuToggle.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if(sidebar.classList.contains('open')) {
+                        closeMobileMenu();
+                    } else {
+                        openMobileMenu();
+                    }
                 });
             }
+            
+            // Fechar ao clicar no overlay
+            if(overlay) {
+                overlay.addEventListener('click', () => {
+                    closeMobileMenu();
+                });
+            }
+            
+            // Fechar ao redimensionar para desktop (caso esteja aberto)
+            window.addEventListener('resize', () => {
+                if(window.innerWidth >= 768) {
+                    sidebar.classList.remove('open');
+                    overlay.classList.add('hidden');
+                }
+            });
+        }
+        
+        // Função que envolve a navegação e fecha o menu no mobile
+        function navigateWithMenuClose(navigationFn) {
+            return () => {
+                navigationFn();
+                closeMobileMenu();
+            };
         }
         
         // ================================
@@ -315,10 +373,9 @@ Aqui está a versão corrigida com o menu "Máquinas & EPIs" reformulado, substi
         }
         
         // ================================
-        // 3. MÓDULO MÁQUINAS COM CHECKBOXES (sem barra de rolagem nos selects)
+        // 3. MÓDULO MÁQUINAS COM CHECKBOXES
         // ================================
         function renderMachinesModule() {
-            // Gerar checkboxes para riscos
             const risksCheckboxes = RISKS_CATALOG.map(risk => `
                 <label class="flex items-center gap-2 p-2 rounded-lg hover:bg-[#1a2035] cursor-pointer transition">
                     <input type="checkbox" value="${risk}" class="risk-checkbox w-4 h-4 rounded border-gray-500 text-blue-500 focus:ring-blue-500">
@@ -326,7 +383,6 @@ Aqui está a versão corrigida com o menu "Máquinas & EPIs" reformulado, substi
                 </label>
             `).join('');
             
-            // Gerar checkboxes para EPIs
             const episCheckboxes = EPIS_CATALOG.map(epi => `
                 <label class="flex items-center gap-2 p-2 rounded-lg hover:bg-[#1a2035] cursor-pointer transition">
                     <input type="checkbox" value="${epi}" class="epi-checkbox w-4 h-4 rounded border-gray-500 text-emerald-500 focus:ring-emerald-500">
@@ -341,7 +397,6 @@ Aqui está a versão corrigida com o menu "Máquinas & EPIs" reformulado, substi
                         <h2 class="text-xl font-bold text-white">Máquinas & EPIs</h2>
                     </div>
                     
-                    <!-- Formulário de Nova Máquina -->
                     <div class="card-glass rounded-2xl p-6">
                         <h3 class="font-bold text-gray-200 flex items-center gap-2 mb-5"><i class="fas fa-plus-circle text-emerald-400"></i> Nova Máquina</h3>
                         
@@ -378,7 +433,6 @@ Aqui está a versão corrigida com o menu "Máquinas & EPIs" reformulado, substi
                         </div>
                     </div>
                     
-                    <!-- Lista de Máquinas Cadastradas -->
                     <div>
                         <h3 class="font-bold text-gray-300 mb-3 flex items-center gap-2"><i class="fas fa-list-ul text-blue-400"></i> Máquinas Cadastradas (${machines.length})</h3>
                         <div id="machineListContainer" class="space-y-3">
@@ -411,7 +465,6 @@ Aqui está a versão corrigida com o menu "Máquinas & EPIs" reformulado, substi
             `;
             document.getElementById("dynamicPanel").innerHTML = html;
             
-            // Gerar QR Codes para cada máquina
             machines.forEach(machine => {
                 const container = document.getElementById(`qr-${machine.id}`);
                 if(container && !container.hasChildNodes()) {
@@ -425,7 +478,6 @@ Aqui está a versão corrigida com o menu "Máquinas & EPIs" reformulado, substi
                 }
             });
             
-            // Evento de cadastro de nova máquina
             document.getElementById("addMachineBtn")?.addEventListener("click", () => {
                 const name = document.getElementById("machineName").value.trim();
                 const selectedRisks = Array.from(document.querySelectorAll(".risk-checkbox:checked")).map(cb => cb.value);
@@ -447,7 +499,6 @@ Aqui está a versão corrigida com o menu "Máquinas & EPIs" reformulado, substi
                 showToast(`Máquina "${name}" cadastrada com sucesso!`, "success");
             });
             
-            // Evento de exclusão de máquina
             document.querySelectorAll(".deleteMachineBtn").forEach(btn => {
                 btn.addEventListener("click", (e) => {
                     const id = btn.dataset.id;
@@ -801,11 +852,13 @@ Aqui está a versão corrigida com o menu "Máquinas & EPIs" reformulado, substi
         function init() {
             initMobileMenu();
             if(!handleRoute()) renderDashboard();
-            document.getElementById("navDashboard")?.addEventListener("click", () => { stopCamera(); renderDashboard(); });
-            document.getElementById("navMachines")?.addEventListener("click", () => { stopCamera(); renderMachinesModule(); });
-            document.getElementById("navEmployees")?.addEventListener("click", () => { stopCamera(); renderEmployeesModule(); });
-            document.getElementById("navChecklist")?.addEventListener("click", () => { stopCamera(); renderChecklistModule(); });
-            document.getElementById("navHistory")?.addEventListener("click", () => { stopCamera(); renderHistoryModule(); });
+            
+            // Configurar navegação com fechamento automático do menu no mobile
+            document.getElementById("navDashboard")?.addEventListener("click", navigateWithMenuClose(() => { stopCamera(); renderDashboard(); }));
+            document.getElementById("navMachines")?.addEventListener("click", navigateWithMenuClose(() => { stopCamera(); renderMachinesModule(); }));
+            document.getElementById("navEmployees")?.addEventListener("click", navigateWithMenuClose(() => { stopCamera(); renderEmployeesModule(); }));
+            document.getElementById("navChecklist")?.addEventListener("click", navigateWithMenuClose(() => { stopCamera(); renderChecklistModule(); }));
+            document.getElementById("navHistory")?.addEventListener("click", navigateWithMenuClose(() => { stopCamera(); renderHistoryModule(); }));
         }
         
         function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[m])); }
@@ -813,4 +866,3 @@ Aqui está a versão corrigida com o menu "Máquinas & EPIs" reformulado, substi
     </script>
 </body>
 </html>
-```
