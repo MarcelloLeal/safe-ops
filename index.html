@@ -118,6 +118,48 @@
                 transform: scale(1);
             }
         }
+        .mood-option {
+            transition: all 0.2s ease;
+        }
+        .mood-option.selected {
+            transform: scale(1.02);
+        }
+        .mood-option[data-mood="muito-bem"].selected {
+            background: linear-gradient(135deg, #059669, #10b981);
+            border-color: #34d399;
+        }
+        .mood-option[data-mood="bem"].selected {
+            background: linear-gradient(135deg, #3b82f6, #60a5fa);
+            border-color: #93c5fd;
+        }
+        .mood-option[data-mood="cansado"].selected {
+            background: linear-gradient(135deg, #d97706, #f59e0b);
+            border-color: #fcd34d;
+        }
+        .mood-option[data-mood="estressado"].selected {
+            background: linear-gradient(135deg, #ea580c, #f97316);
+            border-color: #fdba74;
+        }
+        .mood-option[data-mood="preciso-ajuda"].selected {
+            background: linear-gradient(135deg, #dc2626, #ef4444);
+            border-color: #fca5a5;
+        }
+        .warning-bounce {
+            animation: warningBounce 0.5s ease;
+        }
+        @keyframes warningBounce {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        /* Badge de notificação */
+        .notification-badge {
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.8; }
+        }
     </style>
 </head>
 <body class="bg-[#0a0f1a] font-sans antialiased">
@@ -167,8 +209,11 @@
                         <i class="fas fa-circle text-emerald-500 text-xs"></i>
                         <span class="text-xs text-gray-300" id="statusBadge">Sistema operacional</span>
                     </div>
-                    <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center shadow-lg">
-                        <i class="fas fa-user-shield text-white text-sm"></i>
+                    <div class="relative">
+                        <div id="notificationIcon" class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center shadow-lg cursor-pointer hover:scale-105 transition">
+                            <i class="fas fa-bell text-white text-sm"></i>
+                        </div>
+                        <span id="notificationCount" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center hidden">0</span>
                     </div>
                 </div>
             </div>
@@ -221,6 +266,19 @@
         </div>
     </div>
 
+    <!-- MODAL DE NOTIFICAÇÕES -->
+    <div id="notificationModal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] hidden items-center justify-center p-4 transition-all">
+        <div class="card-glass rounded-2xl p-6 max-w-md w-full max-h-[80vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-white"><i class="fas fa-bell mr-2"></i> Notificações</h2>
+                <button id="closeNotificationModal" class="text-gray-400 hover:text-white text-xl">&times;</button>
+            </div>
+            <div id="notificationsList" class="space-y-3">
+                <!-- Notificações serão inseridas aqui -->
+            </div>
+        </div>
+    </div>
+
     <div id="toastContainer" class="fixed bottom-5 right-5 z-50 space-y-2"></div>
 
     <script>
@@ -253,23 +311,28 @@
         ];
 
         let checklistHistory = [];
-
-        // Sessão do usuário
+        
+        // Sistema de notificações
+        let notifications = [];
         let currentUser = null;
+        let wellnessStatus = null;
 
         function saveData() {
             localStorage.setItem("safeops_machines", JSON.stringify(machines));
             localStorage.setItem("safeops_employees", JSON.stringify(employees));
             localStorage.setItem("safeops_checklist_history", JSON.stringify(checklistHistory));
+            localStorage.setItem("safeops_notifications", JSON.stringify(notifications));
         }
         
         function loadData() {
             const storedMachines = localStorage.getItem("safeops_machines");
             const storedEmployees = localStorage.getItem("safeops_employees");
             const storedHistory = localStorage.getItem("safeops_checklist_history");
+            const storedNotifications = localStorage.getItem("safeops_notifications");
             if(storedMachines) machines = JSON.parse(storedMachines);
             if(storedEmployees) employees = JSON.parse(storedEmployees);
             if(storedHistory) checklistHistory = JSON.parse(storedHistory);
+            if(storedNotifications) notifications = JSON.parse(storedNotifications);
         }
         loadData();
         
@@ -284,12 +347,77 @@
             toast.className = `toast-notification px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3 text-sm font-medium backdrop-blur-sm border ${
                 type === 'success' ? 'bg-emerald-900/90 border-emerald-500 text-emerald-200' : 
                 type === 'error' ? 'bg-red-900/90 border-red-500 text-red-200' : 
+                type === 'warning' ? 'bg-yellow-900/90 border-yellow-500 text-yellow-200' :
                 'bg-blue-900/90 border-blue-500 text-blue-200'
             }`;
-            const icon = type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-triangle' : 'fa-info-circle';
+            const icon = type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-triangle' : type === 'warning' ? 'fa-exclamation-circle' : 'fa-info-circle';
             toast.innerHTML = `<i class="fas ${icon} text-lg"></i><span>${message}</span>`;
             document.getElementById('toastContainer').appendChild(toast);
             setTimeout(() => toast.remove(), 3500);
+        }
+        
+        // Adicionar notificação
+        function addNotification(title, message, type = 'warning') {
+            const notification = {
+                id: Date.now(),
+                title,
+                message,
+                type,
+                timestamp: new Date().toISOString(),
+                read: false
+            };
+            notifications.unshift(notification);
+            saveData();
+            updateNotificationBadge();
+            
+            // Se for admin e estiver logado, mostrar toast
+            if(currentUser && currentUser.role === 'admin') {
+                showToast(`🔔 Nova notificação: ${title}`, 'warning');
+            }
+        }
+        
+        function updateNotificationBadge() {
+            const unreadCount = notifications.filter(n => !n.read).length;
+            const badge = document.getElementById('notificationCount');
+            if(unreadCount > 0) {
+                badge.textContent = unreadCount > 9 ? '9+' : unreadCount;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+        
+        function renderNotificationsModal() {
+            const modal = document.getElementById('notificationModal');
+            const listContainer = document.getElementById('notificationsList');
+            
+            if(notifications.length === 0) {
+                listContainer.innerHTML = '<div class="text-center text-gray-400 py-8"><i class="fas fa-bell-slash text-3xl mb-2"></i><p>Nenhuma notificação</p></div>';
+            } else {
+                listContainer.innerHTML = notifications.map(notif => `
+                    <div class="bg-[#111827] rounded-xl p-3 border-l-4 ${notif.type === 'warning' ? 'border-yellow-500' : 'border-red-500'} ${notif.read ? 'opacity-70' : ''}">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-white font-semibold text-sm">${notif.title}</p>
+                                <p class="text-gray-400 text-xs mt-1">${notif.message}</p>
+                                <p class="text-gray-500 text-xs mt-2">${new Date(notif.timestamp).toLocaleString('pt-BR')}</p>
+                            </div>
+                            ${!notif.read ? `<button class="markReadBtn text-blue-400 text-xs" data-id="${notif.id}"><i class="fas fa-check-circle"></i></button>` : ''}
+                        </div>
+                    </div>
+                `).join('');
+                
+                document.querySelectorAll('.markReadBtn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const id = parseInt(btn.dataset.id);
+                        const notif = notifications.find(n => n.id === id);
+                        if(notif) notif.read = true;
+                        saveData();
+                        updateNotificationBadge();
+                        renderNotificationsModal();
+                    });
+                });
+            }
         }
         
         function closeMobileMenu() {
@@ -395,16 +523,139 @@
                 statusBadge.innerHTML = '<i class="fas fa-user text-blue-400 mr-1"></i> Modo Colaborador';
             }
             
-            // Atribuir eventos
             if(currentUser.role === 'admin') {
                 document.getElementById("navDashboard")?.addEventListener("click", navigateWithMenuClose(() => { stopCamera(); renderDashboard(); }));
                 document.getElementById("navMachines")?.addEventListener("click", navigateWithMenuClose(() => { stopCamera(); renderMachinesModule(); }));
                 document.getElementById("navEmployees")?.addEventListener("click", navigateWithMenuClose(() => { stopCamera(); renderEmployeesModule(); }));
-                document.getElementById("navChecklist")?.addEventListener("click", navigateWithMenuClose(() => { stopCamera(); renderChecklistModule(); }));
+                document.getElementById("navChecklist")?.addEventListener("click", navigateWithMenuClose(() => { stopCamera(); renderWellnessCheck(); }));
                 document.getElementById("navHistory")?.addEventListener("click", navigateWithMenuClose(() => { stopCamera(); renderHistoryModule(); }));
             } else {
-                document.getElementById("navChecklistColab")?.addEventListener("click", navigateWithMenuClose(() => { stopCamera(); renderChecklistModule(); }));
+                document.getElementById("navChecklistColab")?.addEventListener("click", navigateWithMenuClose(() => { stopCamera(); renderWellnessCheck(); }));
                 document.getElementById("navHistoryColab")?.addEventListener("click", navigateWithMenuClose(() => { stopCamera(); renderHistoryModuleColab(); }));
+            }
+        }
+        
+        // ================================
+        // 3. TERMÔMETRO DE BEM-ESTAR (COLABORADOR)
+        // ================================
+        function renderWellnessCheck() {
+            wellnessStatus = null;
+            
+            const moodOptions = [
+                { value: "muito-bem", label: "Muito bem", icon: "fa-smile-wink", color: "emerald", description: "Disposto e motivado" },
+                { value: "bem", label: "Bem", icon: "fa-smile", color: "blue", description: "Estou me sentindo bem" },
+                { value: "cansado", label: "Cansado", icon: "fa-tired", color: "amber", description: "Preciso de um descanso" },
+                { value: "estressado", label: "Estressado", icon: "fa-angry", color: "orange", description: "Sob pressão no trabalho" },
+                { value: "preciso-ajuda", label: "Preciso de Ajuda", icon: "fa-hand-holding-heart", color: "red", description: "Apoio emocional necessário" }
+            ];
+            
+            const optionsHtml = moodOptions.map(opt => `
+                <div data-mood="${opt.value}" 
+                     class="mood-option bg-[#111827] border-2 border-[#1f2a3e] rounded-xl p-4 cursor-pointer transition-all hover:scale-105 hover:border-${opt.color}-500/50 text-center group">
+                    <i class="fas ${opt.icon} text-3xl text-${opt.color}-400 mb-2 block"></i>
+                    <p class="font-bold text-white text-sm">${opt.label}</p>
+                    <p class="text-xs text-gray-400 mt-1">${opt.description}</p>
+                </div>
+            `).join('');
+            
+            const html = `
+                <div class="max-w-4xl mx-auto">
+                    <div class="card-glass rounded-2xl p-8 text-center mb-6">
+                        <div class="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-red-500 to-orange-500 rounded-2xl mb-4 shadow-lg">
+                            <i class="fas fa-thermometer-half text-white text-3xl"></i>
+                        </div>
+                        <h2 class="text-2xl font-bold text-white">Termômetro de Bem-Estar</h2>
+                        <p class="text-gray-400 mt-2">Como você está se sentindo hoje?</p>
+                        <p class="text-xs text-gray-500 mt-1">Sua resposta é anônima e ajuda a promover um ambiente mais seguro</p>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6" id="moodGrid">
+                        ${optionsHtml}
+                    </div>
+                    
+                    <div id="wellnessWarning" class="hidden">
+                        <div class="bg-red-900/40 border-l-4 border-red-500 rounded-xl p-5 warning-bounce">
+                            <i class="fas fa-exclamation-triangle text-red-400 text-2xl"></i>
+                            <h3 class="font-bold text-red-300 text-lg mt-2">Encaminhamento ao Setor de Segurança</h3>
+                            <p class="text-red-200 mt-2">Por favor, dirija-se ao setor de Segurança do Trabalho para uma avaliação.</p>
+                            <p class="text-red-300/70 text-sm mt-2">Sua segurança e bem-estar são nossa prioridade.</p>
+                            <button id="closeSessionBtn" class="mt-4 bg-red-600 hover:bg-red-500 text-white px-6 py-2 rounded-lg font-bold transition flex items-center gap-2">
+                                <i class="fas fa-door-open"></i> Encerrar Atendimento
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-center mt-6">
+                        <button id="continueWellnessBtn" class="bg-cyan-600 hover:bg-cyan-500 text-white px-8 py-3 rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+                            <i class="fas fa-arrow-right"></i> Continuar
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById("dynamicPanel").innerHTML = html;
+            
+            const moodOptionsElements = document.querySelectorAll('.mood-option');
+            const continueBtn = document.getElementById('continueWellnessBtn');
+            const wellnessWarning = document.getElementById('wellnessWarning');
+            
+            moodOptionsElements.forEach(option => {
+                option.addEventListener('click', () => {
+                    moodOptionsElements.forEach(opt => {
+                        opt.classList.remove('selected');
+                        opt.style.background = '';
+                        opt.style.borderColor = '';
+                    });
+                    option.classList.add('selected');
+                    wellnessStatus = option.dataset.mood;
+                    continueBtn.disabled = false;
+                    wellnessWarning.classList.add('hidden');
+                });
+            });
+            
+            continueBtn.addEventListener('click', () => {
+                if(!wellnessStatus) {
+                    showToast("Selecione como você está se sentindo antes de continuar", "error");
+                    return;
+                }
+                
+                const allowedMoods = ['muito-bem', 'bem'];
+                
+                if(allowedMoods.includes(wellnessStatus)) {
+                    renderChecklistModule();
+                    showToast("Ótimo! Vamos prosseguir com o checklist de segurança.", "success");
+                } else {
+                    wellnessWarning.classList.remove('hidden');
+                    wellnessWarning.classList.add('warning-bounce');
+                    setTimeout(() => {
+                        wellnessWarning.classList.remove('warning-bounce');
+                    }, 500);
+                    
+                    // Enviar notificação para o admin
+                    const moodNames = {
+                        'cansado': 'Cansado',
+                        'estressado': 'Estressado',
+                        'preciso-ajuda': 'Preciso de Ajuda'
+                    };
+                    const moodName = moodNames[wellnessStatus] || wellnessStatus;
+                    addNotification(
+                        `🚨 Colaborador encaminhado ao Setor de Segurança`,
+                        `${currentUser?.name || 'Colaborador'} relatou estado: "${moodName}". Favor verificar o colaborador no setor de segurança.`,
+                        'warning'
+                    );
+                    showToast("Notificação enviada ao administrador. Por favor, dirija-se ao setor de Segurança do Trabalho.", "warning");
+                }
+            });
+            
+            // Botão para encerrar atendimento
+            const closeSessionBtn = document.getElementById('closeSessionBtn');
+            if(closeSessionBtn) {
+                closeSessionBtn.addEventListener('click', () => {
+                    showToast("Atendimento encerrado. Você será redirecionado para o início.", "info");
+                    setTimeout(() => {
+                        logout();
+                    }, 2000);
+                });
             }
         }
         
@@ -413,7 +664,7 @@
         // ================================
         function renderDashboard() {
             if(currentUser?.role !== 'admin') {
-                renderChecklistModule();
+                renderWellnessCheck();
                 return;
             }
             
@@ -421,6 +672,7 @@
             const totalEmployees = employees.length;
             const totalInspections = checklistHistory.length;
             const recentInspections = [...checklistHistory].reverse().slice(0, 5);
+            const unreadNotifications = notifications.filter(n => !n.read).length;
             
             const html = `
                 <div class="space-y-6">
@@ -428,7 +680,7 @@
                         <h1 class="text-2xl font-bold text-white">Dashboard</h1>
                         <p class="text-gray-400">Visão geral da segurança operacional</p>
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-5">
                         <div class="card-glass rounded-2xl p-5">
                             <div class="flex items-center justify-between">
                                 <div><i class="fas fa-microchip text-3xl text-blue-400"></i></div>
@@ -450,6 +702,13 @@
                             </div>
                             <p class="text-gray-400 mt-2">Inspeções realizadas</p>
                         </div>
+                        <div class="card-glass rounded-2xl p-5 cursor-pointer hover:border-blue-500 transition" id="notificationsCard">
+                            <div class="flex items-center justify-between">
+                                <div><i class="fas fa-bell text-3xl text-yellow-400"></i></div>
+                                <span class="text-3xl font-bold text-white">${unreadNotifications}</span>
+                            </div>
+                            <p class="text-gray-400 mt-2">Notificações não lidas</p>
+                        </div>
                     </div>
                     <div class="card-glass rounded-2xl p-5">
                         <h3 class="font-bold text-white mb-3"><i class="fas fa-history mr-2"></i>Últimas Inspeções</h3>
@@ -468,6 +727,11 @@
                 </div>
             `;
             document.getElementById("dynamicPanel").innerHTML = html;
+            
+            document.getElementById("notificationsCard")?.addEventListener("click", () => {
+                renderNotificationsModal();
+                document.getElementById('notificationModal').classList.remove('hidden');
+            });
         }
         
         // ================================
@@ -476,7 +740,7 @@
         function renderMachinesModule() {
             if(currentUser?.role !== 'admin') {
                 showToast("Acesso negado. Apenas administradores.", "error");
-                renderChecklistModule();
+                renderWellnessCheck();
                 return;
             }
             
@@ -548,7 +812,7 @@
         function renderEmployeesModule() {
             if(currentUser?.role !== 'admin') {
                 showToast("Acesso negado.", "error");
-                renderChecklistModule();
+                renderWellnessCheck();
                 return;
             }
             const html = `
@@ -585,7 +849,7 @@
         }
         
         // ================================
-        // 4. CHECKLIST COM CÂMERA (ACESSO PARA AMBOS)
+        // 4. CHECKLIST COM CÂMERA
         // ================================
         let currentStream = null;
         let currentFacingMode = "environment";
@@ -714,7 +978,7 @@
                     saveData();
                     showToast("Checklist finalizado!", "success");
                     stopCamera();
-                    setTimeout(() => renderChecklistModule(), 1500);
+                    setTimeout(() => renderWellnessCheck(), 1500);
                 }
             });
             startCamera();
@@ -749,26 +1013,46 @@
         
         function logout() {
             currentUser = null;
+            wellnessStatus = null;
             stopCamera();
             document.getElementById('loginModal').classList.remove('hidden');
             document.getElementById('sidebar').classList.remove('open');
-            // Limpar campos de login
             document.getElementById('loginUser').value = '';
             document.getElementById('loginPass').value = '';
+            updateNotificationBadge();
         }
         
         function afterLogin() {
             document.getElementById('loginModal').classList.add('hidden');
             renderSidebarMenu();
+            updateNotificationBadge();
             
-            // Redirecionar conforme perfil
             if(currentUser.role === 'admin') {
                 renderDashboard();
                 showToast(`Bem-vindo, ${currentUser.name}! Você está no Dashboard.`, "success");
             } else {
-                renderChecklistModule();
-                showToast(`Bem-vindo, ${currentUser.name}! Acesse o Checklist de Segurança.`, "success");
+                renderWellnessCheck();
+                showToast(`Bem-vindo, ${currentUser.name}! Vamos começar com o termômetro de bem-estar.`, "success");
             }
+        }
+        
+        function initNotifications() {
+            const notificationIcon = document.getElementById('notificationIcon');
+            const closeModal = document.getElementById('closeNotificationModal');
+            const modal = document.getElementById('notificationModal');
+            
+            notificationIcon.addEventListener('click', () => {
+                renderNotificationsModal();
+                modal.classList.remove('hidden');
+            });
+            
+            closeModal.addEventListener('click', () => {
+                modal.classList.add('hidden');
+            });
+            
+            modal.addEventListener('click', (e) => {
+                if(e.target === modal) modal.classList.add('hidden');
+            });
         }
         
         function initAuth() {
@@ -796,6 +1080,7 @@
         function init() {
             initMobileMenu();
             initAuth();
+            initNotifications();
         }
         
         init();
